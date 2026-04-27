@@ -1,0 +1,10 @@
+{
+  "name": "luis-boutique",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LUIS BOUTIQUE storefront SPA with a Node REST backend and Vercel-ready serverless APIs.",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  }
+}

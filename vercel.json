@@ -1,0 +1,10 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/products/(.*)", "destination": "/api/product.js?id=$1" },
+    { "source": "/api/products", "destination": "/api/products.js" },
+    { "source": "/api/categories", "destination": "/api/categories.js" },
+    { "source": "/api/cart", "destination": "/api/cart.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

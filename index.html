@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LUIS BOUTIQUE</title>
+    <meta
+      name="description"
+      content="LUIS BOUTIQUE: tienda online moderna de ropa y accesorios con experiencia premium, catálogo dinámico y compra por WhatsApp."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-glow"></div>
+    <header class="site-header" id="siteHeader">
+      <div class="header-left">
+        <button class="logo-button" id="logoButton" aria-label="Ir al inicio">
+          <span class="logo-mark">LB</span>
+          <span class="logo-word brand-shimmer">LuisBoutique</span>
+        </button>
+      </div>
+
+      <nav class="header-nav">
+        <a href="#nosotros" data-nav="about">Nosotros</a>
+        <a href="#tienda" data-nav="store">Tienda</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="icon-button" id="cartButton" aria-label="Abrir carrito">
+          <span>🛒</span>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+        <button class="icon-button" id="menuButton" aria-label="Abrir configuración">☰</button>
+      </div>
+    </header>
+
+    <aside class="side-panel cart-panel" id="cartPanel" aria-hidden="true">
+      <div class="panel-header">
+        <div>
+          <p class="panel-eyebrow">Carrito</p>
+          <h2 id="cartTitle">Tu selección</h2>
+        </div>
+        <button class="icon-button panel-close" data-close-panel="cart">✕</button>
+      </div>
+      <div class="cart-items" id="cartItems"></div>
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span id="cartSummaryLabel">Total</span>
+          <strong id="cartTotal">$0.00</strong>
+        </div>
+        <button class="cta-button" id="checkoutButton">COMPRAR POR WHATSAPP</button>
+      </div>
+    </aside>
+
+    <aside class="side-panel settings-panel" id="settingsPanel" aria-hidden="true">
+      <div class="panel-header">
+        <div>
+          <p class="panel-eyebrow">Configuración</p>
+          <h2 id="settingsTitle">Personaliza tu experiencia</h2>
+        </div>
+        <button class="icon-button panel-close" data-close-panel="settings">✕</button>
+      </div>
+
+      <section class="settings-group">
+        <div class="settings-row">
+          <div>
+            <p class="settings-label" id="themeLabel">Modo de color</p>
+            <span class="settings-hint" id="themeHint">Elige entre una vista clara u oscura.</span>
+          </div>
+          <button class="toggle-button" id="themeToggle">🌙</button>
+        </div>
+      </section>
+
+      <section class="settings-group">
+        <div class="settings-row">
+          <div>
+            <p class="settings-label" id="languageLabel">Idioma</p>
+            <span class="settings-hint" id="languageHint">Cambia el contenido de toda la tienda.</span>
+          </div>
+        </div>
+        <div class="language-list" id="languageList"></div>
+      </section>
+    </aside>
+
+    <div class="backdrop" id="panelBackdrop"></div>
+
+    <main>
+      <section class="hero" id="inicio">
+        <div class="hero-copy reveal">
+          <span class="hero-kicker">Premium Streetwear</span>
+          <h1 id="heroTitle">La energía del estilo urbano, curada para destacar.</h1>
+          <p id="heroText">
+            LUIS BOUTIQUE combina moda limpia, siluetas actuales y una experiencia de compra ágil inspirada en marcas globales, pero con identidad propia.
+          </p>
+          <div class="hero-actions">
+            <a href="#tienda" class="cta-button" id="heroCtaStore">Explorar tienda</a>
+            <a href="#nosotros" class="ghost-button" id="heroCtaAbout">Conocer la marca</a>
+          </div>
+        </div>
+
+        <div class="hero-carousel reveal" id="heroCarousel">
+          <div class="carousel-media" id="carouselMedia"></div>
+          <div class="carousel-overlay">
+            <div class="carousel-copy">
+              <span class="carousel-tag" id="carouselTag">Colección destacada</span>
+              <h2 id="carouselTitle"></h2>
+              <p id="carouselDescription"></p>
+            </div>
+            <div class="carousel-controls">
+              <button class="icon-button" id="prevSlide" aria-label="Anterior">←</button>
+              <div class="carousel-dots" id="carouselDots"></div>
+              <button class="icon-button" id="nextSlide" aria-label="Siguiente">→</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-section section-block" id="nosotros">
+        <div class="section-head reveal">
+          <span class="section-kicker">Nosotros</span>
+          <h2 id="aboutTitle">Moda pensada para verse premium, sentirse ligera y moverse contigo.</h2>
+        </div>
+
+        <div class="about-grid">
+          <article class="about-card reveal">
+            <p class="card-index">01</p>
+            <h3 id="aboutCard1Title">Curaduría con enfoque urbano</h3>
+            <p id="aboutCard1Text">
+              Elegimos piezas con siluetas limpias, colores versátiles y actitud contemporánea para que tu outfit se vea elevado sin esfuerzo.
+            </p>
+          </article>
+          <article class="about-card reveal">
+            <p class="card-index">02</p>
+            <h3 id="aboutCard2Title">Experiencia rápida y fluida</h3>
+            <p id="aboutCard2Text">
+              Navega por el catálogo, cambia variantes al instante y compra por WhatsApp con un mensaje listo para enviar.
+            </p>
+          </article>
+          <article class="about-card reveal">
+            <p class="card-index">03</p>
+            <h3 id="aboutCard3Title">Identidad propia</h3>
+            <p id="aboutCard3Text">
+              Nos inspira la precisión visual de grandes referentes, pero cada detalle está personalizado para LUIS BOUTIQUE.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="store-section section-block" id="tienda">
+        <div class="section-head reveal store-head">
+          <div>
+            <span class="section-kicker">Tienda</span>
+            <h2 id="storeTitle">Catálogo completo con navegación por categoría.</h2>
+          </div>
+          <p class="store-caption" id="storeCaption">
+            Más de 80 productos de prueba listos para explorar, filtrar y agregar al carrito.
+          </p>
+        </div>
+
+        <div class="category-pills reveal" id="categoryFilters"></div>
+        <div class="products-grid" id="productsGrid"></div>
+      </section>
+    </main>
+
+    <section class="product-modal" id="productModal" aria-hidden="true">
+      <div class="modal-shell">
+        <button class="icon-button modal-close" id="closeProductModal" aria-label="Cerrar detalle">✕</button>
+        <div class="modal-gallery">
+          <div class="thumb-list" id="productThumbs"></div>
+          <div class="main-image-wrap">
+            <img id="productMainImage" alt="Producto LUIS BOUTIQUE" />
+          </div>
+        </div>
+        <div class="modal-details">
+          <p class="modal-category" id="productCategory"></p>
+          <h2 id="productName"></h2>
+          <p class="modal-price" id="productPrice"></p>
+          <p class="modal-description" id="productDescription"></p>
+
+          <div class="selector-group">
+            <span class="selector-label" id="colorLabel">Color</span>
+            <div class="color-options" id="variantOptions"></div>
+          </div>
+
+          <div class="selector-group">
+            <span class="selector-label" id="sizeLabel">Talla</span>
+            <div class="size-options" id="sizeOptions"></div>
+          </div>
+
+          <button class="cta-button" id="addToCartButton">Agregar al carrito</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p id="footerTerms">Términos y condiciones</p>
+      <div class="footer-social">
+        <a href="https://wa.me/18099077400" target="_blank" rel="noreferrer">WhatsApp</a>
+        <a href="https://www.instagram.com/luisboutique__/" target="_blank" rel="noreferrer">Instagram</a>
+        <a href="https://www.facebook.com/profile.php?id=100048039686714&locale=es_LA" target="_blank" rel="noreferrer">Facebook</a>
+      </div>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
