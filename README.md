@@ -52,6 +52,13 @@ Luego abre `http://localhost:3000`.
 2. Importa el repo en Vercel.
 3. Vercel servirá `index.html` y las rutas de `api/`.
 
+## Deploy en GitHub Pages
+
+La tienda también puede publicarse desde GitHub Pages.
+
+- URL esperada: `https://locomarss.github.io/luis-boutique/`
+- En Pages, el frontend usa `storefront-data.js` como respaldo para mantener catálogo y carrito funcionando sin backend serverless.
+
 ## Nota
 
 Por las restricciones de instalación en esta ruta de OneDrive, el proyecto quedó implementado sin dependencias externas para asegurar que funcione y sea editable aquí mismo. Si quieres, en la siguiente iteración puedo migrarlo a React/Next.js y conectarlo a MySQL o MongoDB real en una ruta fuera de OneDrive o con permisos de instalación completos.
