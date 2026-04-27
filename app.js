@@ -1,32 +1,467 @@
-const state={language:localStorage.getItem("lb-language")||"es",theme:localStorage.getItem("lb-theme")||"light",category:"todos",products:[],categories:[],cart:JSON.parse(localStorage.getItem("lb-cart")||"[]"),selectedProduct:null,selectedVariantId:null,selectedImageIndex:0,selectedSize:null,currentSlide:0};
-const translations={es:{nav:{about:"Nosotros",store:"Tienda"},heroTitle:"La energía del estilo urbano, curada para destacar.",heroText:"LUIS BOUTIQUE combina moda limpia, siluetas actuales y una experiencia de compra ágil inspirada en marcas globales, pero con identidad propia.",heroCtaStore:"Explorar tienda",heroCtaAbout:"Conocer la marca",carouselTag:"Colección destacada",aboutTitle:"Moda pensada para verse premium, sentirse ligera y moverse contigo.",aboutCard1Title:"Curaduría con enfoque urbano",aboutCard1Text:"Elegimos piezas con siluetas limpias, colores versátiles y actitud contemporánea para que tu outfit se vea elevado sin esfuerzo.",aboutCard2Title:"Experiencia rápida y fluida",aboutCard2Text:"Navega por el catálogo, cambia variantes al instante y compra por WhatsApp con un mensaje listo para enviar.",aboutCard3Title:"Identidad propia",aboutCard3Text:"Nos inspira la precisión visual de grandes referentes, pero cada detalle está personalizado para LUIS BOUTIQUE.",storeTitle:"Catálogo completo con navegación por categoría.",storeCaption:"Más de 80 productos de prueba listos para explorar, filtrar y agregar al carrito.",cartTitle:"Tu selección",cartSummaryLabel:"Total",checkout:"COMPRAR POR WHATSAPP",emptyCart:"Tu carrito está vacío. Agrega piezas desde la tienda.",settingsTitle:"Personaliza tu experiencia",themeLabel:"Modo de color",themeHint:"Elige entre una vista clara u oscura.",languageLabel:"Idioma",languageHint:"Cambia el contenido de toda la tienda.",color:"Color",size:"Talla",addToCart:"Agregar al carrito",terms:"Términos y condiciones",whatsappIntro:"Hola, quiero comprar los siguientes productos:",whatsappTotal:"Total",addedToast:"Producto agregado al carrito"},en:{nav:{about:"About",store:"Shop"},heroTitle:"Urban energy, curated to stand out.",heroText:"LUIS BOUTIQUE blends clean fashion, modern silhouettes, and a fast buying experience inspired by global brands with its own identity.",heroCtaStore:"Explore shop",heroCtaAbout:"Meet the brand",carouselTag:"Featured collection",aboutTitle:"Fashion designed to look premium, feel light, and move with you.",aboutCard1Title:"Urban-focused curation",aboutCard1Text:"We select clean silhouettes, versatile colors, and contemporary attitude so your outfit feels elevated without effort.",aboutCard2Title:"Fast and fluid experience",aboutCard2Text:"Browse the catalog, switch variants instantly, and checkout through WhatsApp with a ready-to-send message.",aboutCard3Title:"Own identity",aboutCard3Text:"We take visual cues from global references, but every detail is customized for LUIS BOUTIQUE.",storeTitle:"Full catalog with category-based browsing.",storeCaption:"More than 80 sample products ready to browse, filter, and add to cart.",cartTitle:"Your selection",cartSummaryLabel:"Total",checkout:"BUY VIA WHATSAPP",emptyCart:"Your cart is empty. Add pieces from the shop.",settingsTitle:"Customize your experience",themeLabel:"Color mode",themeHint:"Choose between a light or dark view.",languageLabel:"Language",languageHint:"Switch the content across the store.",color:"Color",size:"Size",addToCart:"Add to cart",terms:"Terms and conditions",whatsappIntro:"Hi, I want to buy the following products:",whatsappTotal:"Total",addedToast:"Product added to cart"},ht:{nav:{about:"Sou nou",store:"Boutik"},heroTitle:"Enèji mòd iben an, chwazi pou fè w briye.",heroText:"LUIS BOUTIQUE melanje mòd pwòp, silwèt modèn, ak yon eksperyans acha rapid ki pran enspirasyon nan gwo mak men ki gen pwòp idantite pa li.",heroCtaStore:"Gade boutik la",heroCtaAbout:"Dekouvri mak la",carouselTag:"Koleksyon vedèt",aboutTitle:"Mòd ki fèt pou parèt premium, santi l lejè, epi mache avè w.",aboutCard1Title:"Seleksyon ak vizyon iben",aboutCard1Text:"Nou chwazi pyès ki gen liy pwòp, koulè fasil pou konbine, ak yon atitid modèn pou fè stil ou leve fasil.",aboutCard2Title:"Eksperyans rapid ak lis",aboutCard2Text:"Gade katalòg la, chanje varyasyon yo imedyatman, epi achte sou WhatsApp ak yon mesaj ki deja pare.",aboutCard3Title:"Pwòp idantite pa nou",aboutCard3Text:"Nou pran enspirasyon nan gwo referans vizyèl, men chak detay fèt espesyalman pou LUIS BOUTIQUE.",storeTitle:"Katalòg konplè ak navigasyon pa kategori.",storeCaption:"Plis pase 80 pwodwi demonstrasyon pare pou gade, filtre, epi mete nan panyen.",cartTitle:"Seleksyon ou",cartSummaryLabel:"Total",checkout:"ACHTE SOU WHATSAPP",emptyCart:"Panyen ou vid. Ajoute pyès depi nan boutik la.",settingsTitle:"Pèsonalize eksperyans ou",themeLabel:"Mòd koulè",themeHint:"Chwazi ant mòd klè oswa nwa.",languageLabel:"Lang",languageHint:"Chanje kontni tout boutik la.",color:"Koulè",size:"Gwosè",addToCart:"Ajoute nan panyen",terms:"Tèm ak kondisyon",whatsappIntro:"Bonjou, mwen vle achte pwodwi sa yo:",whatsappTotal:"Total",addedToast:"Pwodwi a ajoute nan panyen an"}};
-const carouselSlides=[{type:"image",src:"https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1400&h=900&q=80",title:"Red Motion",description:"Looks limpios con contraste rojo, blanco y negro para una presencia premium."},{type:"video",src:"https://cdn.coverr.co/videos/coverr-young-man-walking-down-the-street-1561787075597?download=1080p",title:"Street Rhythm",description:"Una vitrina editorial que mezcla imagen, movimiento y ritmo visual tipo campaña."},{type:"image",src:"https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1400&h=900&q=80",title:"Minimal Power",description:"Siluetas versátiles listas para elevar outfits casuales y urbanos."}];
-const languageOptions=[{id:"es",label:"Español"},{id:"en",label:"English"},{id:"ht",label:"Creole"}];
-const elements={root:document.documentElement,body:document.body,siteHeader:document.getElementById("siteHeader"),logoButton:document.getElementById("logoButton"),cartButton:document.getElementById("cartButton"),menuButton:document.getElementById("menuButton"),cartPanel:document.getElementById("cartPanel"),settingsPanel:document.getElementById("settingsPanel"),panelBackdrop:document.getElementById("panelBackdrop"),cartItems:document.getElementById("cartItems"),cartTotal:document.getElementById("cartTotal"),cartCount:document.getElementById("cartCount"),checkoutButton:document.getElementById("checkoutButton"),categoryFilters:document.getElementById("categoryFilters"),productsGrid:document.getElementById("productsGrid"),languageList:document.getElementById("languageList"),themeToggle:document.getElementById("themeToggle"),carouselMedia:document.getElementById("carouselMedia"),carouselDots:document.getElementById("carouselDots"),carouselTitle:document.getElementById("carouselTitle"),carouselDescription:document.getElementById("carouselDescription"),productModal:document.getElementById("productModal"),closeProductModal:document.getElementById("closeProductModal"),productThumbs:document.getElementById("productThumbs"),productMainImage:document.getElementById("productMainImage"),productCategory:document.getElementById("productCategory"),productName:document.getElementById("productName"),productPrice:document.getElementById("productPrice"),productDescription:document.getElementById("productDescription"),variantOptions:document.getElementById("variantOptions"),sizeOptions:document.getElementById("sizeOptions"),addToCartButton:document.getElementById("addToCartButton")};
-const useStaticStore=window.location.hostname.endsWith("github.io")||window.location.protocol==="file:";
-const t=(key)=>key.split(".").reduce((acc,part)=>acc?.[part],translations[state.language]);
-const formatCurrency=(value)=>new Intl.NumberFormat(state.language==="es"?"es-DO":"en-US",{style:"currency",currency:"USD"}).format(value);
-function showToast(message){const toast=document.createElement("div");toast.textContent=message;Object.assign(toast.style,{position:"fixed",left:"50%",bottom:"24px",transform:"translateX(-50%)",background:"var(--text)",color:"#fff",padding:"12px 18px",borderRadius:"999px",zIndex:"100",boxShadow:"var(--shadow)"});document.body.appendChild(toast);window.setTimeout(()=>toast.remove(),1800);}
-async function fetchJson(url,options){const response=await fetch(url,options);if(!response.ok)throw new Error("Request failed");return response.json();}
-async function loadCatalog(){if(useStaticStore&&window.STOREFRONT_DATA){state.categories=window.STOREFRONT_DATA.categories;state.products=window.STOREFRONT_DATA.products;renderCategories();renderProducts();return;}try{const [categoriesResponse,productsResponse]=await Promise.all([fetchJson("/api/categories"),fetchJson("/api/products")]);state.categories=categoriesResponse.categories;state.products=productsResponse.products;renderCategories();renderProducts();}catch(error){if(window.STOREFRONT_DATA){state.categories=window.STOREFRONT_DATA.categories;state.products=window.STOREFRONT_DATA.products;renderCategories();renderProducts();return;}throw error;}}
-function setTheme(theme){state.theme=theme;localStorage.setItem("lb-theme",theme);elements.root.classList.toggle("dark",theme==="dark");elements.themeToggle.textContent=theme==="dark"?"☀️":"🌙";}
-function renderStaticText(){document.documentElement.lang=state.language==="ht"?"ht":state.language;document.querySelector("[data-nav='about']").textContent=t("nav.about");document.querySelector("[data-nav='store']").textContent=t("nav.store");document.getElementById("heroTitle").textContent=t("heroTitle");document.getElementById("heroText").textContent=t("heroText");document.getElementById("heroCtaStore").textContent=t("heroCtaStore");document.getElementById("heroCtaAbout").textContent=t("heroCtaAbout");document.getElementById("carouselTag").textContent=t("carouselTag");document.getElementById("aboutTitle").textContent=t("aboutTitle");document.getElementById("aboutCard1Title").textContent=t("aboutCard1Title");document.getElementById("aboutCard1Text").textContent=t("aboutCard1Text");document.getElementById("aboutCard2Title").textContent=t("aboutCard2Title");document.getElementById("aboutCard2Text").textContent=t("aboutCard2Text");document.getElementById("aboutCard3Title").textContent=t("aboutCard3Title");document.getElementById("aboutCard3Text").textContent=t("aboutCard3Text");document.getElementById("storeTitle").textContent=t("storeTitle");document.getElementById("storeCaption").textContent=t("storeCaption");document.getElementById("cartTitle").textContent=t("cartTitle");document.getElementById("cartSummaryLabel").textContent=t("cartSummaryLabel");document.getElementById("checkoutButton").textContent=t("checkout");document.getElementById("settingsTitle").textContent=t("settingsTitle");document.getElementById("themeLabel").textContent=t("themeLabel");document.getElementById("themeHint").textContent=t("themeHint");document.getElementById("languageLabel").textContent=t("languageLabel");document.getElementById("languageHint").textContent=t("languageHint");document.getElementById("colorLabel").textContent=t("color");document.getElementById("sizeLabel").textContent=t("size");document.getElementById("addToCartButton").textContent=t("addToCart");document.getElementById("footerTerms").textContent=t("terms");}
-function renderLanguages(){elements.languageList.innerHTML=languageOptions.map((option)=>`<button class="language-button ${option.id===state.language?"active":""}" data-language="${option.id}">${option.label}</button>`).join("");}
-function renderCategories(){elements.categoryFilters.innerHTML=state.categories.map((category)=>`<button class="category-pill ${category.id===state.category?"active":""}" data-category="${category.id}">${category.label}</button>`).join("");}
-function getFilteredProducts(){return state.category==="todos"?state.products:state.products.filter((product)=>product.category===state.category);}
-function renderProducts(){elements.productsGrid.innerHTML=getFilteredProducts().map((product)=>`<button class="product-card reveal visible" data-product-id="${product.id}"><figure><img src="${product.variants[0].images[0]}" alt="${product.name}" loading="lazy" /><figcaption>${product.badge}</figcaption></figure><div class="product-meta"><div><h3>${product.name}</h3><p>${product.categoryLabel}</p></div><strong class="product-price">${formatCurrency(product.price)}</strong></div></button>`).join("");}
-function getSelectedVariant(){return state.selectedProduct?.variants.find((variant)=>variant.id===state.selectedVariantId)||state.selectedProduct?.variants[0];}
-function renderProductModal(){if(!state.selectedProduct)return;const product=state.selectedProduct;const variant=getSelectedVariant();const image=variant.images[state.selectedImageIndex]||variant.images[0];elements.productCategory.textContent=product.categoryLabel;elements.productName.textContent=product.name;elements.productPrice.textContent=formatCurrency(product.price);elements.productDescription.textContent=product.description;elements.productMainImage.src=image;elements.productThumbs.innerHTML=variant.images.map((entry,index)=>`<button class="thumb-button ${index===state.selectedImageIndex?"active":""}" data-thumb-index="${index}"><img src="${entry}" alt="${product.name} vista ${index+1}" /></button>`).join("");elements.variantOptions.innerHTML=product.variants.map((entry)=>`<button class="color-button ${entry.id===variant.id?"active":""}" data-variant-id="${entry.id}" style="--swatch:${entry.swatch}" title="${entry.name}" aria-label="${entry.name}"></button>`).join("");elements.sizeOptions.innerHTML=product.sizes.map((size)=>`<button class="size-button ${size===state.selectedSize?"active":""}" data-size="${size}">${size}</button>`).join("");}
-function openProductModal(productId){const product=state.products.find((entry)=>entry.id===productId);if(!product)return;state.selectedProduct=product;state.selectedVariantId=product.variants[0].id;state.selectedImageIndex=0;state.selectedSize=product.sizes[0];renderProductModal();elements.productModal.classList.add("open");elements.productModal.setAttribute("aria-hidden","false");elements.body.style.overflow="hidden";}
-function closeProductModal(){elements.productModal.classList.remove("open");elements.productModal.setAttribute("aria-hidden","true");elements.body.style.overflow="";}
-function persistCart(){localStorage.setItem("lb-cart",JSON.stringify(state.cart));}
-async function syncCartSummary(){let summary;if(useStaticStore&&window.STOREFRONT_DATA){summary=window.STOREFRONT_DATA.summarizeCart(state.cart);}else{try{summary=await fetchJson("/api/cart",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({items:state.cart})});}catch(error){if(window.STOREFRONT_DATA){summary=window.STOREFRONT_DATA.summarizeCart(state.cart);}else{throw error;}}}elements.cartCount.textContent=String(summary.items.reduce((sum,item)=>sum+item.quantity,0));elements.cartTotal.textContent=summary.totalLabel;if(!summary.items.length){elements.cartItems.innerHTML=`<div class="empty-state">${t("emptyCart")}</div>`;return summary;}elements.cartItems.innerHTML=summary.items.map((item)=>`<article class="cart-item"><img src="${item.image}" alt="${item.name}" /><div><h3>${item.name}</h3><p>${item.variantName} • ${item.size}</p><p>Cantidad: ${item.quantity}</p><strong>${item.subtotalLabel}</strong></div></article>`).join("");return summary;}
-function addCurrentProductToCart(){if(!state.selectedProduct)return;state.cart.push({productId:state.selectedProduct.id,variantId:state.selectedVariantId,size:state.selectedSize,quantity:1});persistCart();syncCartSummary();showToast(t("addedToast"));}
-function setLanguage(language){state.language=language;localStorage.setItem("lb-language",language);renderStaticText();renderLanguages();renderCategories();renderProducts();renderProductModal();syncCartSummary();}
-function openPanel(name){elements.panelBackdrop.classList.add("visible");if(name==="cart"){elements.cartPanel.classList.add("open");elements.cartPanel.setAttribute("aria-hidden","false");}if(name==="settings"){elements.settingsPanel.classList.add("open");elements.settingsPanel.setAttribute("aria-hidden","false");}}
-function closePanels(){elements.cartPanel.classList.remove("open");elements.settingsPanel.classList.remove("open");elements.cartPanel.setAttribute("aria-hidden","true");elements.settingsPanel.setAttribute("aria-hidden","true");elements.panelBackdrop.classList.remove("visible");}
-function renderCarousel(){elements.carouselMedia.innerHTML=carouselSlides.map((slide,index)=>`<div class="carousel-slide ${index===state.currentSlide?"active":""}">${slide.type==="video"?`<video src="${slide.src}" muted autoplay loop playsinline></video>`:`<img src="${slide.src}" alt="${slide.title}" />`}</div>`).join("");elements.carouselDots.innerHTML=carouselSlides.map((_,index)=>`<button class="${index===state.currentSlide?"active":""}" data-slide-index="${index}"></button>`).join("");const currentSlide=carouselSlides[state.currentSlide];elements.carouselTitle.textContent=currentSlide.title;elements.carouselDescription.textContent=currentSlide.description;}
-function advanceSlide(direction=1){state.currentSlide=(state.currentSlide+direction+carouselSlides.length)%carouselSlides.length;renderCarousel();}
-function attachEvents(){let lastScrollY=window.scrollY;window.addEventListener("scroll",()=>{const current=window.scrollY;if(current>lastScrollY&&current>120){elements.siteHeader.classList.add("hidden");}else{elements.siteHeader.classList.remove("hidden");}lastScrollY=current;});elements.logoButton.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));elements.cartButton.addEventListener("click",()=>openPanel("cart"));elements.menuButton.addEventListener("click",()=>openPanel("settings"));elements.panelBackdrop.addEventListener("click",closePanels);document.querySelectorAll("[data-close-panel]").forEach((button)=>button.addEventListener("click",closePanels));elements.themeToggle.addEventListener("click",()=>setTheme(state.theme==="dark"?"light":"dark"));elements.languageList.addEventListener("click",(event)=>{const button=event.target.closest("[data-language]");if(button)setLanguage(button.dataset.language);});elements.categoryFilters.addEventListener("click",(event)=>{const button=event.target.closest("[data-category]");if(!button)return;state.category=button.dataset.category;renderCategories();renderProducts();});elements.productsGrid.addEventListener("click",(event)=>{const card=event.target.closest("[data-product-id]");if(card)openProductModal(card.dataset.productId);});elements.closeProductModal.addEventListener("click",closeProductModal);elements.productModal.addEventListener("click",(event)=>{if(event.target===elements.productModal)closeProductModal();});elements.variantOptions.addEventListener("click",(event)=>{const button=event.target.closest("[data-variant-id]");if(!button)return;state.selectedVariantId=button.dataset.variantId;state.selectedImageIndex=0;renderProductModal();});elements.productThumbs.addEventListener("click",(event)=>{const button=event.target.closest("[data-thumb-index]");if(!button)return;state.selectedImageIndex=Number(button.dataset.thumbIndex);renderProductModal();});elements.sizeOptions.addEventListener("click",(event)=>{const button=event.target.closest("[data-size]");if(!button)return;state.selectedSize=button.dataset.size;renderProductModal();});elements.addToCartButton.addEventListener("click",addCurrentProductToCart);document.getElementById("prevSlide").addEventListener("click",()=>advanceSlide(-1));document.getElementById("nextSlide").addEventListener("click",()=>advanceSlide(1));elements.carouselDots.addEventListener("click",(event)=>{const button=event.target.closest("[data-slide-index]");if(!button)return;state.currentSlide=Number(button.dataset.slideIndex);renderCarousel();});elements.checkoutButton.addEventListener("click",async()=>{const summary=await syncCartSummary();if(!summary.items.length)return;const lines=[t("whatsappIntro"),...summary.items.map((item)=>`- ${item.name} | ${item.variantName} | ${item.size} | x${item.quantity} | ${item.subtotalLabel}`),`${t("whatsappTotal")}: ${summary.totalLabel}`];window.open(`https://wa.me/18099077400?text=${encodeURIComponent(lines.join("\n"))}`,"_blank");});const observer=new IntersectionObserver((entries)=>{entries.forEach((entry)=>{if(entry.isIntersecting)entry.target.classList.add("visible");});},{threshold:0.15});document.querySelectorAll(".reveal").forEach((element)=>observer.observe(element));}
-async function init(){setTheme(state.theme);renderStaticText();renderLanguages();renderCarousel();attachEvents();await loadCatalog();await syncCartSummary();window.setInterval(()=>advanceSlide(1),6000);}
-init().catch((error)=>{console.error(error);elements.productsGrid.innerHTML=`<div class="empty-state">No se pudo cargar la tienda.</div>`;});
+const state = {
+  catalog: null,
+  filter: "todos",
+  cart: JSON.parse(localStorage.getItem("lb-cart-v2") || "[]"),
+  selectedProductId: null,
+  selectedColorId: null,
+  selectedSizeLabel: null,
+  selectedPhotoIndex: 0
+};
+
+const page = document.body.dataset.page;
+const backdrop = document.getElementById("panelBackdrop");
+const cartPanel = document.getElementById("cartPanel");
+const settingsPanel = document.getElementById("settingsPanel");
+
+async function fetchCatalog() {
+  const response = await fetch("./data/catalog.json?v=" + Date.now());
+  if (!response.ok) {
+    throw new Error("No se pudo cargar el catalogo");
+  }
+  return response.json();
+}
+
+function saveCart() {
+  localStorage.setItem("lb-cart-v2", JSON.stringify(state.cart));
+}
+
+function formatMoney(value) {
+  return window.CatalogClient.formatMoney(value);
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.classList.contains("dark") ? "light" : "dark";
+  html.classList.toggle("dark", next === "dark");
+  localStorage.setItem("lb-theme", next);
+  const button = document.getElementById("themeToggle");
+  if (button) {
+    button.textContent = next === "dark" ? "☀️" : "🌙";
+  }
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem("lb-theme") || "light";
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  const button = document.getElementById("themeToggle");
+  if (button) {
+    button.textContent = theme === "dark" ? "☀️" : "🌙";
+  }
+}
+
+function openPanel(name) {
+  backdrop.classList.add("visible");
+  if (name === "cart") {
+    cartPanel.classList.add("open");
+  }
+  if (name === "settings") {
+    settingsPanel.classList.add("open");
+  }
+}
+
+function closePanels() {
+  cartPanel.classList.remove("open");
+  settingsPanel.classList.remove("open");
+  backdrop.classList.remove("visible");
+}
+
+function bindCommonUI() {
+  document.getElementById("cartButton")?.addEventListener("click", () => openPanel("cart"));
+  document.getElementById("menuButton")?.addEventListener("click", () => openPanel("settings"));
+  document.getElementById("themeToggle")?.addEventListener("click", toggleTheme);
+  backdrop?.addEventListener("click", closePanels);
+
+  document.querySelectorAll("[data-close]").forEach((button) => {
+    button.addEventListener("click", closePanels);
+  });
+
+  let lastScrollY = window.scrollY;
+  window.addEventListener("scroll", () => {
+    const header = document.getElementById("siteHeader");
+    if (!header) {
+      return;
+    }
+    if (window.scrollY > lastScrollY && window.scrollY > 100) {
+      header.classList.add("hidden");
+    } else {
+      header.classList.remove("hidden");
+    }
+    lastScrollY = window.scrollY;
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+        }
+      });
+    },
+    { threshold: 0.15 }
+  );
+
+  document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+}
+
+function setHeroFromCatalog() {
+  const heroTitle = document.getElementById("heroTitle");
+  const heroText = document.getElementById("heroText");
+  const heroImage = document.getElementById("heroImage");
+
+  if (heroTitle) heroTitle.textContent = state.catalog.store.heroTitle;
+  if (heroText) heroText.textContent = state.catalog.store.heroText;
+  if (heroImage) {
+    const firstNew = state.catalog.products.find((product) => product.isNewArrival) || state.catalog.products[0];
+    heroImage.src = firstNew.colors[0].images[0];
+  }
+}
+
+function filteredProducts() {
+  if (state.filter === "todos") {
+    return state.catalog.products;
+  }
+  if (state.filter === "nuevo") {
+    return state.catalog.products.filter((product) => product.isNewArrival || product.status === "new");
+  }
+  if (state.filter === "ofertas") {
+    return state.catalog.products.filter((product) => product.status === "sale" || product.status === "offer");
+  }
+  return state.catalog.products.filter((product) => product.category === state.filter);
+}
+
+function renderFilters() {
+  const target = document.getElementById("filters");
+  if (!target) return;
+
+  const filters = [
+    { id: "todos", label: "Todos" },
+    { id: "nuevo", label: "Nuevo" },
+    { id: "ofertas", label: "Ofertas" },
+    ...state.catalog.categories
+  ];
+
+  target.innerHTML = filters
+    .map((filter) => `<button class="filter-chip ${filter.id === state.filter ? "active" : ""}" data-filter="${filter.id}">${filter.label}</button>`)
+    .join("");
+
+  target.onclick = (event) => {
+    const chip = event.target.closest("[data-filter]");
+    if (!chip) return;
+    state.filter = chip.dataset.filter;
+    renderFilters();
+    renderProducts();
+  };
+}
+
+function badgeMarkup(product) {
+  return `<span class="badge-shell"><span class="badge-pill">${product.badgeText}</span></span>`;
+}
+
+function cardMarkup(product) {
+  return `
+    <button class="product-card" data-product="${product.id}">
+      <figure>
+        <img src="${product.colors[0].images[0]}" alt="${product.name}" loading="lazy" />
+        <div class="card-badge">${badgeMarkup(product)}</div>
+      </figure>
+      <div class="product-meta">
+        <div>
+          <h3 class="product-name">${product.name}</h3>
+          <p>${product.categoryLabel}</p>
+          <span class="inventory-note">Stock: ${product.stock}</span>
+        </div>
+        <div class="price-line">
+          <strong class="current-price">${formatMoney(product.price)}</strong>
+          ${product.originalPrice > product.price ? `<span class="old-price">${formatMoney(product.originalPrice)}</span>` : ""}
+        </div>
+      </div>
+    </button>
+  `;
+}
+
+function renderNewArrivals() {
+  const target = document.getElementById("newArrivals");
+  if (!target) return;
+  const items = state.catalog.products.filter((product) => product.isNewArrival).slice(0, 3);
+  target.innerHTML = items.map(cardMarkup).join("");
+}
+
+function renderProducts() {
+  const target = document.getElementById("productsGrid");
+  if (!target) return;
+
+  const products = filteredProducts().filter((product) => !product.isNewArrival || state.filter !== "todos");
+  target.innerHTML = products.map(cardMarkup).join("");
+}
+
+function cartKey(productId, colorId, sizeLabel) {
+  return `${productId}::${colorId}::${sizeLabel}`;
+}
+
+function addToCart() {
+  const product = window.CatalogClient.productById(state.catalog, state.selectedProductId);
+  const color = window.CatalogClient.colorById(product, state.selectedColorId);
+  const size = window.CatalogClient.sizeByLabel(product, state.selectedSizeLabel);
+
+  if (!color.available || !size.available) {
+    return;
+  }
+
+  const key = cartKey(product.id, color.id, size.label);
+  const current = state.cart.find((item) => item.key === key);
+  if (current) {
+    current.quantity += 1;
+  } else {
+    state.cart.push({
+      key,
+      productId: product.id,
+      colorId: color.id,
+      sizeLabel: size.label,
+      quantity: 1
+    });
+  }
+
+  saveCart();
+  renderCart();
+  closeProductModal();
+}
+
+function renderCart() {
+  const summary = window.CatalogClient.summarizeCart(state.catalog, state.cart);
+  const target = document.getElementById("cartList");
+  document.getElementById("cartCount").textContent = String(summary.items.reduce((sum, item) => sum + item.quantity, 0));
+  document.getElementById("cartTotal").textContent = summary.totalLabel;
+
+  if (!summary.items.length) {
+    target.innerHTML = `<div class="empty-card section-card"><p class="section-text">Tu carrito esta vacio. Agrega productos desde la tienda.</p></div>`;
+    return;
+  }
+
+  target.innerHTML = summary.items
+    .map(
+      (item) => `
+        <article class="cart-item">
+          <img src="${item.image}" alt="${item.name}" />
+          <div>
+            <h3>${item.name}</h3>
+            <p>${item.colorName} · ${item.sizeLabel}</p>
+            <p>${item.priceLabel}</p>
+            <div class="cart-controls">
+              <div class="qty-box">
+                <button class="qty-btn" data-cart-action="minus" data-key="${item.key}">-</button>
+                <strong>${item.quantity}</strong>
+                <button class="qty-btn" data-cart-action="plus" data-key="${item.key}">+</button>
+              </div>
+              <button class="remove-btn" data-cart-action="remove" data-key="${item.key}">🗑</button>
+            </div>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+
+  target.onclick = (event) => {
+    const button = event.target.closest("[data-cart-action]");
+    if (!button) return;
+    const item = state.cart.find((entry) => entry.key === button.dataset.key);
+    if (!item) return;
+
+    if (button.dataset.cartAction === "plus") item.quantity += 1;
+    if (button.dataset.cartAction === "minus") item.quantity -= 1;
+    if (button.dataset.cartAction === "remove" || item.quantity <= 0) {
+      state.cart = state.cart.filter((entry) => entry.key !== button.dataset.key);
+    }
+
+    saveCart();
+    renderCart();
+  };
+}
+
+function selectedProduct() {
+  return window.CatalogClient.productById(state.catalog, state.selectedProductId);
+}
+
+function openProductModal(productId) {
+  const product = window.CatalogClient.productById(state.catalog, productId);
+  if (!product) return;
+
+  state.selectedProductId = product.id;
+  state.selectedColorId = product.colors[0].id;
+  state.selectedSizeLabel = product.sizes[0].label;
+  state.selectedPhotoIndex = 0;
+  renderProductModal();
+  const modal = document.getElementById("productModal");
+  modal.classList.add("open");
+  backdrop.classList.add("visible");
+}
+
+function closeProductModal() {
+  document.getElementById("productModal").classList.remove("open");
+  if (!cartPanel.classList.contains("open") && !settingsPanel.classList.contains("open")) {
+    backdrop.classList.remove("visible");
+  }
+}
+
+function renderProductModal() {
+  const product = selectedProduct();
+  if (!product) return;
+  const color = window.CatalogClient.colorById(product, state.selectedColorId);
+  const size = window.CatalogClient.sizeByLabel(product, state.selectedSizeLabel);
+
+  document.getElementById("modalCategory").textContent = product.categoryLabel;
+  document.getElementById("modalName").textContent = product.name;
+  document.getElementById("modalPrice").textContent = formatMoney(product.price);
+  document.getElementById("modalOriginalPrice").textContent = product.originalPrice > product.price ? formatMoney(product.originalPrice) : "";
+  document.getElementById("modalDescription").textContent = product.description;
+  document.getElementById("modalPhoto").src = color.images[state.selectedPhotoIndex] || color.images[0];
+  document.getElementById("modalStock").textContent = `Disponibles: ${Math.max(0, color.stock)} en color ${color.name} y ${Math.max(0, size.stock)} en talla ${size.label}.`;
+
+  document.getElementById("modalThumbs").innerHTML = color.images
+    .map((image, index) => `<button class="thumb-btn ${index === state.selectedPhotoIndex ? "active" : ""}" data-thumb="${index}"><img src="${image}" alt="${product.name} ${index + 1}" /></button>`)
+    .join("");
+
+  document.getElementById("modalColors").innerHTML = product.colors
+    .map(
+      (entry) => `<button class="color-chip ${entry.id === color.id ? "active" : ""} ${entry.available ? "" : "unavailable"}" data-color="${entry.id}" style="--chip-color:${entry.hex}" aria-label="${entry.name}" title="${entry.name}"></button>`
+    )
+    .join("");
+
+  document.getElementById("modalSizes").innerHTML = product.sizes
+    .map(
+      (entry) => `<button class="size-chip ${entry.label === size.label ? "active" : ""} ${entry.available ? "" : "unavailable"}" data-size="${entry.label}">${entry.label}</button>`
+    )
+    .join("");
+}
+
+function bindStorePage() {
+  setHeroFromCatalog();
+  renderNewArrivals();
+  renderFilters();
+  renderProducts();
+
+  document.getElementById("productsGrid").onclick = (event) => {
+    const card = event.target.closest("[data-product]");
+    if (card) openProductModal(card.dataset.product);
+  };
+
+  document.getElementById("newArrivals").onclick = (event) => {
+    const card = event.target.closest("[data-product]");
+    if (card) openProductModal(card.dataset.product);
+  };
+
+  document.getElementById("modalClose").onclick = closeProductModal;
+  document.getElementById("productModal").onclick = (event) => {
+    if (event.target.id === "productModal") {
+      closeProductModal();
+    }
+  };
+
+  document.getElementById("modalThumbs").onclick = (event) => {
+    const button = event.target.closest("[data-thumb]");
+    if (!button) return;
+    state.selectedPhotoIndex = Number(button.dataset.thumb);
+    renderProductModal();
+  };
+
+  document.getElementById("modalColors").onclick = (event) => {
+    const button = event.target.closest("[data-color]");
+    if (!button) return;
+    const product = selectedProduct();
+    const color = product.colors.find((entry) => entry.id === button.dataset.color);
+    if (!color || !color.available) return;
+    state.selectedColorId = button.dataset.color;
+    state.selectedPhotoIndex = 0;
+    renderProductModal();
+  };
+
+  document.getElementById("modalSizes").onclick = (event) => {
+    const button = event.target.closest("[data-size]");
+    if (!button) return;
+    const product = selectedProduct();
+    const size = product.sizes.find((entry) => entry.label === button.dataset.size);
+    if (!size || !size.available) return;
+    state.selectedSizeLabel = button.dataset.size;
+    renderProductModal();
+  };
+
+  document.getElementById("addToCartButton").onclick = addToCart;
+}
+
+function bindAboutPage() {
+  const about = state.catalog.about;
+  document.getElementById("aboutHeadline").textContent = about.headline;
+  document.getElementById("aboutIntro").textContent = about.intro;
+
+  const blocks = [
+    ...about.paragraphs.map((text, index) => ({
+      title: index === 0 ? "Nuestra energia" : "Como trabajamos",
+      text
+    })),
+    ...about.highlights.map((item) => ({
+      title: item.label,
+      text: item.value
+    }))
+  ];
+
+  document.getElementById("aboutBlocks").innerHTML = blocks
+    .map(
+      (block) => `
+        <article class="about-block reveal visible">
+          <p class="eyebrow">${block.title}</p>
+          <p class="about-text">${block.text}</p>
+        </article>
+      `
+    )
+    .join("");
+
+  const video = document.getElementById("aboutVideo");
+  const source = document.getElementById("aboutVideoSource");
+  video.poster = about.video.poster;
+  source.src = about.video.src;
+  video.load();
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      });
+    },
+    { threshold: 0.5 }
+  );
+
+  observer.observe(video);
+}
+
+function bindCheckout() {
+  document.getElementById("checkoutButton").onclick = () => {
+    const summary = window.CatalogClient.summarizeCart(state.catalog, state.cart);
+    if (!summary.items.length) return;
+
+    const lines = [
+      "Hola, quiero comprar los siguientes productos:",
+      ...summary.items.map((item) => `- ${item.name} | ${item.colorName} | ${item.sizeLabel} | x${item.quantity} | ${item.subtotalLabel}`),
+      `Total: ${summary.totalLabel}`
+    ];
+
+    window.open(`https://wa.me/${state.catalog.store.whatsappNumber}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
+  };
+}
+
+async function init() {
+  applyTheme();
+  bindCommonUI();
+  state.catalog = await fetchCatalog();
+  renderCart();
+  bindCheckout();
+
+  if (page === "store") bindStorePage();
+  if (page === "about") bindAboutPage();
+}
+
+init().catch((error) => {
+  console.error(error);
+});

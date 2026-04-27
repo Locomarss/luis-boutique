@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LUIS BOUTIQUE OWNER</title>
+    <meta name="description" content="Consola privada para manejar productos, precios, stock, colores y tallas de LUIS BOUTIQUE." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body class="owner-body">
+    <main class="owner-shell">
+      <section class="owner-login active" id="ownerLogin">
+        <div class="owner-card">
+          <p class="eyebrow">Owner access</p>
+          <h1 class="section-title">Entra para editar el catalogo</h1>
+          <p class="section-text">Esta consola esta separada de la web de compradores. Para publicar cambios necesitas el codigo de acceso y un token de GitHub con permiso al repo.</p>
+          <div class="editor-grid">
+            <div class="field full">
+              <label for="accessCode">Codigo de acceso</label>
+              <input id="accessCode" type="password" placeholder="Escribe el codigo de dueno" />
+            </div>
+            <div class="field full">
+              <label for="githubToken">GitHub token</label>
+              <input id="githubToken" type="password" placeholder="ghp_ o github_pat_..." />
+              <span class="field-help">Necesita permiso repo para actualizar data/catalog.json</span>
+            </div>
+            <div class="field">
+              <label for="repoName">Repositorio</label>
+              <input id="repoName" type="text" value="Locomarss/luis-boutique" />
+            </div>
+            <div class="field">
+              <label for="branchName">Branch</label>
+              <input id="branchName" type="text" value="main" />
+            </div>
+          </div>
+          <div class="owner-actions" style="margin-top:18px">
+            <button class="cta-btn" id="unlockButton">Entrar a consola</button>
+            <a class="ghost-btn" href="../index.html">Volver a tienda</a>
+          </div>
+          <p class="panel-note" id="loginMessage">Codigo inicial sugerido: cambia tu codigo dentro del JSON despues del primer acceso si quieres mas control.</p>
+        </div>
+      </section>
+
+      <section class="owner-dashboard" id="ownerDashboard">
+        <div class="owner-topbar">
+          <div>
+            <p class="eyebrow">LUIS BOUTIQUE OWNER</p>
+            <h1 class="section-title" style="font-size:2.3rem">Editor de catalogo</h1>
+            <p class="panel-note" id="lastUpdatedText">Sin cambios publicados aun.</p>
+          </div>
+          <div class="owner-actions">
+            <button class="ghost-btn" id="previewBuyerButton">Abrir tienda</button>
+            <button class="danger-btn" id="publishButton">Confirmar y publicar cambios</button>
+          </div>
+        </div>
+
+        <div class="owner-grid">
+          <aside class="owner-sidebar owner-card">
+            <div class="owner-actions">
+              <button class="cta-btn" id="addProductButton">Agregar producto</button>
+              <button class="ghost-btn" id="deleteProductButton">Eliminar producto</button>
+            </div>
+            <div class="product-list" id="ownerProductList"></div>
+          </aside>
+
+          <section class="editor-card">
+            <div class="section-head" style="margin-bottom:0">
+              <div>
+                <span class="eyebrow">Configuracion general</span>
+                <h2 class="section-title" style="font-size:2rem">Informacion editable</h2>
+              </div>
+            </div>
+
+            <div class="editor-grid">
+              <div class="field">
+                <label for="storeName">Nombre de la tienda</label>
+                <input id="storeName" type="text" />
+              </div>
+              <div class="field">
+                <label for="whatsNumber">Numero de WhatsApp</label>
+                <input id="whatsNumber" type="text" />
+              </div>
+              <div class="field full">
+                <label for="heroTitleInput">Titulo principal de tienda</label>
+                <input id="heroTitleInput" type="text" />
+              </div>
+              <div class="field full">
+                <label for="heroTextInput">Texto principal de tienda</label>
+                <textarea id="heroTextInput"></textarea>
+              </div>
+              <div class="field full">
+                <label for="aboutHeadlineInput">Titulo pagina nosotros</label>
+                <input id="aboutHeadlineInput" type="text" />
+              </div>
+              <div class="field full">
+                <label for="aboutIntroInput">Intro pagina nosotros</label>
+                <textarea id="aboutIntroInput"></textarea>
+              </div>
+              <div class="field full">
+                <label for="aboutVideoInput">URL mini video</label>
+                <input id="aboutVideoInput" type="text" />
+              </div>
+            </div>
+
+            <hr style="width:100%; border:none; border-top:1px solid var(--border)" />
+
+            <div class="section-head" style="margin-bottom:0">
+              <div>
+                <span class="eyebrow">Producto</span>
+                <h2 class="section-title" style="font-size:2rem">Producto seleccionado</h2>
+              </div>
+            </div>
+
+            <div class="editor-grid">
+              <div class="field">
+                <label for="productName">Nombre</label>
+                <input id="productName" type="text" />
+              </div>
+              <div class="field">
+                <label for="productCategory">Categoria</label>
+                <select id="productCategory"></select>
+              </div>
+              <div class="field">
+                <label for="productPrice">Precio actual (RD$)</label>
+                <input id="productPrice" type="number" min="0" />
+              </div>
+              <div class="field">
+                <label for="productOriginalPrice">Precio original (RD$)</label>
+                <input id="productOriginalPrice" type="number" min="0" />
+              </div>
+              <div class="field">
+                <label for="productStatus">Estado visual</label>
+                <select id="productStatus">
+                  <option value="standard">Normal</option>
+                  <option value="new">Nuevo</option>
+                  <option value="sale">Rebajas</option>
+                  <option value="offer">Oferta</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="productBadgeText">Texto de badge</label>
+                <input id="productBadgeText" type="text" />
+              </div>
+              <div class="field full">
+                <label for="productDescription">Descripcion</label>
+                <textarea id="productDescription"></textarea>
+              </div>
+              <div class="field">
+                <label for="productStock">Stock total visible</label>
+                <input id="productStock" type="number" min="0" />
+              </div>
+              <div class="field">
+                <label for="productNewArrival">Aparece en nuevos productos</label>
+                <select id="productNewArrival">
+                  <option value="true">Si</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field full">
+              <label>Colores</label>
+              <div class="mini-list" id="colorsEditor"></div>
+              <button class="ghost-btn" id="addColorButton" type="button">Agregar color</button>
+            </div>
+
+            <div class="field full">
+              <label>Tallas</label>
+              <div class="mini-list" id="sizesEditor"></div>
+              <button class="ghost-btn" id="addSizeButton" type="button">Agregar talla</button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="../shared/catalog-client.js"></script>
+    <script src="./owner.js"></script>
+  </body>
+</html>

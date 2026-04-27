@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
 const {
+  getCatalog,
   getProducts,
   getProductById,
   getCategories,
@@ -81,6 +82,11 @@ async function handleApi(req, res, parsedUrl) {
     return true;
   }
 
+  if (req.method === "GET" && pathname === "/api/catalog") {
+    sendJson(res, 200, getCatalog());
+    return true;
+  }
+
   if (req.method === "GET" && pathname.startsWith("/api/products/")) {
     const id = pathname.replace("/api/products/", "");
     const product = getProductById(id);
@@ -138,12 +144,53 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
-    sendFile(res, resolvedPath);
+  if (fs.existsSync(resolvedPath)) {
+    const stats = fs.statSync(resolvedPath);
+    if (stats.isFile()) {
+      sendFile(res, resolvedPath);
+      return;
+    }
+
+    if (stats.isDirectory()) {
+      const indexPath = path.join(resolvedPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        sendFile(res, indexPath);
+        return;
+      }
+    }
+  }
+
+  if (parsedUrl.pathname === "/owner" || parsedUrl.pathname === "/owner/") {
+    const ownerIndex = path.join(ROOT, "owner", "index.html");
+    if (fs.existsSync(ownerIndex)) {
+      sendFile(res, ownerIndex);
+      return;
+    }
+  }
+
+  if (parsedUrl.pathname === "/nosotros") {
+    const aboutPath = path.join(ROOT, "nosotros.html");
+    if (fs.existsSync(aboutPath)) {
+      sendFile(res, aboutPath);
+      return;
+    }
+  }
+
+  if (parsedUrl.pathname === "/tienda") {
+    const storePath = path.join(ROOT, "index.html");
+    if (fs.existsSync(storePath)) {
+      sendFile(res, storePath);
+      return;
+    }
+  }
+
+  if (parsedUrl.pathname === "/") {
+    sendFile(res, path.join(ROOT, "index.html"));
     return;
   }
 
-  sendFile(res, path.join(ROOT, "index.html"));
+  res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("Not found");
 });
 
 server.listen(PORT, () => {

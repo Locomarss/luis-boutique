@@ -2,9 +2,13 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/products/(.*)", "destination": "/api/product.js?id=$1" },
+    { "source": "/api/catalog", "destination": "/api/catalog.js" },
     { "source": "/api/products", "destination": "/api/products.js" },
     { "source": "/api/categories", "destination": "/api/categories.js" },
     { "source": "/api/cart", "destination": "/api/cart.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/owner", "destination": "/owner/index.html" },
+    { "source": "/nosotros", "destination": "/nosotros.html" },
+    { "source": "/tienda", "destination": "/index.html" },
+    { "source": "/", "destination": "/index.html" }
   ]
 }

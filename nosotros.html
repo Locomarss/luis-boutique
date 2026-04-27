@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LUIS BOUTIQUE | Tienda</title>
-    <meta name="description" content="Tienda online de LUIS BOUTIQUE con nuevos productos, ofertas y compra por WhatsApp en pesos dominicanos." />
+    <title>LUIS BOUTIQUE | Nosotros</title>
+    <meta name="description" content="Conoce la historia, la energia visual y la vibra urbana de LUIS BOUTIQUE." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-page="store">
+  <body data-page="about">
     <header class="site-header" id="siteHeader">
       <a class="logo-link" href="./index.html" aria-label="Ir a la tienda">
         <img class="logo-img" src="./assets/luis-boutique-logo.jpeg" alt="Luis Boutique" />
@@ -18,8 +18,8 @@
       </a>
 
       <nav class="header-nav">
-        <a class="active" href="./index.html">Tienda</a>
-        <a href="./nosotros.html">Nosotros</a>
+        <a href="./index.html">Tienda</a>
+        <a class="active" href="./nosotros.html">Nosotros</a>
       </nav>
 
       <div class="header-actions">
@@ -68,7 +68,7 @@
         <div class="switch-row">
           <div>
             <strong>Paginas</strong>
-            <p class="panel-note">Ve a la tienda o conoce mas sobre la boutique.</p>
+            <p class="panel-note">Ve a la tienda o vuelve a esta pagina cuando quieras.</p>
           </div>
           <div class="hero-links">
             <a class="text-btn" href="./index.html">Tienda</a>
@@ -81,80 +81,26 @@
     <div class="panel-backdrop" id="panelBackdrop"></div>
 
     <main class="layout">
-      <section class="page-hero reveal">
-        <div class="hero-copy">
-          <span class="eyebrow">Compras directas</span>
-          <h1 class="hero-title" id="heroTitle">Nuevos productos con actitud premium y estilo urbano.</h1>
-          <p class="hero-text" id="heroText">Explora piezas modernas, limpias y faciles de combinar. Compra directo por WhatsApp en pesos dominicanos.</p>
+      <section class="about-hero reveal">
+        <div class="about-copy">
+          <span class="eyebrow">Nosotros</span>
+          <h1 class="about-title" id="aboutHeadline">Una boutique pensada para quienes quieren verse duros sin complicarse.</h1>
+          <p class="about-text" id="aboutIntro">LUIS BOUTIQUE mezcla moda urbana, accesorios y piezas seleccionadas para que el look se sienta premium pero accesible.</p>
           <div class="hero-actions">
-            <a class="cta-btn" href="#nuevos">Ver nuevos productos</a>
-            <a class="ghost-btn" href="./nosotros.html">Entrar a nosotros</a>
+            <a class="cta-btn" href="./index.html">Entrar a la tienda</a>
           </div>
         </div>
-        <div class="hero-media">
-          <img id="heroImage" src="./assets/luis-boutique-logo.jpeg" alt="Luis Boutique hero" />
-        </div>
-      </section>
-
-      <section class="section" id="nuevos">
-        <div class="section-card reveal">
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Nuevos productos</span>
-              <h2 class="section-title">Lo mas nuevo primero.</h2>
-            </div>
-            <div class="badge-shell"><span class="badge-pill">NEW DROP</span></div>
-          </div>
-          <div class="new-arrivals" id="newArrivals"></div>
+        <div class="video-card reveal">
+          <video id="aboutVideo" muted loop playsinline preload="metadata" poster="">
+            <source id="aboutVideoSource" src="" type="video/mp4" />
+          </video>
         </div>
       </section>
 
       <section class="section">
-        <div class="section-card reveal">
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Catalogo</span>
-              <h2 class="section-title">Filtra por categoria, nuevo u ofertas.</h2>
-            </div>
-            <p class="section-text">Cambia color, talla y cantidad antes de enviar el pedido.</p>
-          </div>
-          <div class="filters" id="filters"></div>
-          <div class="products-grid" id="productsGrid"></div>
-        </div>
+        <div class="about-grid" id="aboutBlocks"></div>
       </section>
     </main>
-
-    <section class="product-modal" id="productModal" aria-hidden="true">
-      <div class="product-modal-shell">
-        <button class="icon-btn modal-close" id="modalClose" aria-label="Cerrar producto">✕</button>
-        <div class="modal-gallery">
-          <div class="thumbs" id="modalThumbs"></div>
-          <div class="main-photo"><img id="modalPhoto" alt="Producto" /></div>
-        </div>
-        <div class="modal-side">
-          <p class="eyebrow" id="modalCategory">Categoria</p>
-          <h2 class="modal-title" id="modalName">Producto</h2>
-          <div class="modal-price">
-            <strong id="modalPrice">RD$0</strong>
-            <span class="old-price" id="modalOriginalPrice"></span>
-          </div>
-          <p class="hero-text" id="modalDescription"></p>
-
-          <div class="option-group">
-            <strong>Colores disponibles</strong>
-            <div class="color-grid" id="modalColors"></div>
-          </div>
-
-          <div class="option-group">
-            <strong>Tallas disponibles</strong>
-            <div class="size-grid" id="modalSizes"></div>
-          </div>
-
-          <div class="inventory-note" id="modalStock"></div>
-          <button class="cta-btn" id="addToCartButton">Agregar al carrito</button>
-        </div>
-      </div>
-    </section>
 
     <footer class="site-footer">
       <p>Terminos y condiciones</p>

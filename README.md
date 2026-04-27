@@ -1,27 +1,61 @@
 # LUIS BOUTIQUE
 
-Tienda online inspirada en una experiencia premium tipo Nike, personalizada para `LUIS BOUTIQUE`.
+Proyecto con dos experiencias separadas:
 
-## Incluye
+- `index.html`: tienda para compradores
+- `nosotros.html`: pagina de informacion de la boutique
+- `owner/index.html`: consola separada para duenos
 
-- SPA responsive y adaptativa
-- Header inteligente con hover shimmer y auto-hide al hacer scroll
-- Secciones `Nosotros` y `Tienda`
-- Carrusel con imagen y video
-- Catálogo por categorías con más de 80 productos de prueba
-- Detalle de producto con variantes, tallas e imágenes dinámicas
-- Carrito lateral con checkout por WhatsApp
-- Sidebar de configuración con modo claro/oscuro e idiomas
-- API REST para productos, categorías y resumen de carrito
-- Estructura lista para desplegar en Vercel sin dependencias externas
+## Lo nuevo
 
-## Stack
+- Logo real integrado desde la imagen original
+- Header pegado arriba, sin efecto flotante
+- Precios en pesos dominicanos
+- Pagina principal de entrada: tienda
+- Pagina `Nosotros` aparte con video que se reproduce al entrar en pantalla
+- Carrito lateral con cerrar al tocar afuera
+- Botones `-`, `+` y eliminar articulo en carrito
+- Productos nuevos arriba
+- Filtros `Todos`, `Nuevo`, `Ofertas` y categorias
+- Colores y tallas no disponibles en gris con raya diagonal
+- Consola de duenos separada para editar catalogo y publicar cambios
 
-- Frontend: HTML, CSS y JavaScript
-- Backend local: Node.js nativo con `http`
-- Backend deploy-ready: funciones serverless en `api/`
-- Datos: `lib/store.js`
-- Esquema SQL editable: `database/schema.sql`
+## Catalogo editable
+
+Toda la informacion editable esta en:
+
+`data/catalog.json`
+
+Desde ahi salen:
+
+- Nombre de tienda
+- WhatsApp
+- Textos principales
+- Video de `Nosotros`
+- Productos
+- Colores
+- Tallas
+- Stock
+- Estado visual `new`, `sale`, `offer`, `standard`
+
+## Consola owner
+
+La consola de duenos publica cambios al mismo repositorio usando GitHub API.
+
+Campos que puedes editar:
+
+- Nombre del producto
+- Categoria
+- Precio actual
+- Precio original
+- Stock visible
+- Badge
+- Estado visual
+- Si sale arriba en `Nuevos productos`
+- Colores
+- Tallas
+- Imagenes por color
+- Textos generales de tienda y nosotros
 
 ## Ejecutar localmente
 
@@ -29,36 +63,28 @@ Tienda online inspirada en una experiencia premium tipo Nike, personalizada para
 node server.js
 ```
 
-Luego abre `http://localhost:3000`.
+Luego abre:
 
-## API REST
+- `http://localhost:3000/`
+- `http://localhost:3000/nosotros.html`
+- `http://localhost:3000/owner/`
 
+## API local
+
+- `GET /api/catalog`
 - `GET /api/products`
-- `GET /api/products?category=zapatos`
 - `GET /api/products/:id`
 - `GET /api/categories`
 - `POST /api/cart`
 
-## Personalización
+## Publicado
 
-- Logo temporal `LB`: [index.html](C:/Users/yadie/OneDrive/Escritorio/luis-boutique/index.html)
-- Diseño visual: [styles.css](C:/Users/yadie/OneDrive/Escritorio/luis-boutique/styles.css)
-- Productos y categorías: [lib/store.js](C:/Users/yadie/OneDrive/Escritorio/luis-boutique/lib/store.js)
-- Textos, idiomas y lógica UI: [app.js](C:/Users/yadie/OneDrive/Escritorio/luis-boutique/app.js)
+- Tienda: `https://locomarss.github.io/luis-boutique/`
+- Nosotros: `https://locomarss.github.io/luis-boutique/nosotros.html`
+- Owner: `https://locomarss.github.io/luis-boutique/owner/`
 
-## Deploy en Vercel
+## Nota de seguridad
 
-1. Sube el proyecto a GitHub.
-2. Importa el repo en Vercel.
-3. Vercel servirá `index.html` y las rutas de `api/`.
-
-## Deploy en GitHub Pages
-
-La tienda también puede publicarse desde GitHub Pages.
-
-- URL esperada: `https://locomarss.github.io/luis-boutique/`
-- En Pages, el frontend usa `storefront-data.js` como respaldo para mantener catálogo y carrito funcionando sin backend serverless.
-
-## Nota
-
-Por las restricciones de instalación en esta ruta de OneDrive, el proyecto quedó implementado sin dependencias externas para asegurar que funcione y sea editable aquí mismo. Si quieres, en la siguiente iteración puedo migrarlo a React/Next.js y conectarlo a MySQL o MongoDB real en una ruta fuera de OneDrive o con permisos de instalación completos.
+La consola owner esta separada y pide codigo de acceso mas token de GitHub para publicar cambios.
+Como esta desplegada en GitHub Pages, esta proteccion es ligera y pensada para este flujo sin backend dedicado.
+Si luego quieres seguridad fuerte de verdad, lo correcto es migrar la consola owner a un backend con autenticacion real.
