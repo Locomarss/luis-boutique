@@ -54,7 +54,7 @@ function parseBody(req) {
     let body = "";
     req.on("data", (chunk) => {
       body += chunk;
-      if (body.length > 1_000_000) {
+      if (body.length > 25_000_000) {
         reject(new Error("Body too large"));
       }
     });

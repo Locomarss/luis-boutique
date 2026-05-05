@@ -13,6 +13,29 @@ function selectedProduct() {
   return ownerCatalog().products.find((product) => product.id === ownerState.selectedProductId) || ownerCatalog().products[0];
 }
 
+function selectedProductImage(product) {
+  const firstColor = (product.colors || []).find((color) => (color.images || []).length) || (product.colors || [])[0];
+  return (firstColor && ((firstColor.images || [])[0] || firstColor.coverImage)) || "../assets/luis-boutique-logo.jpeg";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function calculateDiscount(product) {
+  const original = Number(product.originalPrice || 0);
+  const current = Number(product.price || 0);
+  if (!original || current >= original) {
+    return 0;
+  }
+  return Math.max(0, Math.round(((original - current) / original) * 100));
+}
+
 async function fetchPublishedCatalog() {
   const response = await fetch(`../data/catalog.json?v=${Date.now()}`);
   if (!response.ok) {
@@ -38,13 +61,14 @@ function renderSyncBanner(extraMessage) {
   const snapshot = window.CatalogClient.loadStatusSnapshot();
   const status = ownerState.syncMeta;
   const mode = status?.remote ? "Nube activa" : "Respaldo local";
-  const detail = extraMessage || status?.message || (status?.remote ? "Los cambios se pueden publicar a Supabase." : "Todavia estas trabajando sin Supabase activa.");
+  const detail =
+    extraMessage || status?.message || (status?.remote ? "Los cambios se pueden publicar a Supabase." : "Estas trabajando con respaldo local seguro.");
   const lastUpdate = snapshot?.savedAt || status?.updatedAt || ownerCatalog()?.updatedAt || null;
 
   target.innerHTML = `
     <div class="owner-status-row">
       <span class="status-pill">${mode}</span>
-      <span class="owner-help">${lastUpdate ? `Ultimo movimiento ${window.CatalogClient.relativeTimeLabel(lastUpdate)}.` : "Aun no hay publicaciones remotas."}</span>
+      <span class="owner-help">${lastUpdate ? `Ultimo movimiento ${window.CatalogClient.relativeTimeLabel(lastUpdate)}.` : "Aun no hay publicaciones registradas."}</span>
     </div>
     <p class="owner-help">${detail}</p>
   `;
@@ -53,14 +77,20 @@ function renderSyncBanner(extraMessage) {
 function renderOwnerList() {
   const target = document.getElementById("ownerProductList");
   target.innerHTML = ownerCatalog().products
-    .map(
-      (product) => `
+    .map((product) => {
+      const categoryLabel = escapeHtml(product.categoryLabel || product.category || "Sin categoria");
+      return `
         <button class="owner-list-btn ${product.id === ownerState.selectedProductId ? "active" : ""}" data-product-id="${product.id}">
-          <strong>${product.name}</strong>
-          <div class="owner-help">${product.categoryLabel} · ${window.CatalogClient.formatMoney(product.price)}</div>
+          <div class="owner-list-row">
+            <img src="${selectedProductImage(product)}" alt="${escapeHtml(product.name)}" />
+            <div>
+              <strong>${escapeHtml(product.name)}</strong>
+              <div class="owner-help">${categoryLabel} · ${window.CatalogClient.formatMoney(product.price)}</div>
+            </div>
+          </div>
         </button>
-      `
-    )
+      `;
+    })
     .join("");
 
   target.onclick = (event) => {
@@ -90,7 +120,6 @@ function fillGeneralEditor() {
 }
 
 function syncGeneralEditor() {
-  ownerCatalog().store.name = document.getElementById("storeNameInput").value.trim();
   ownerCatalog().store.whatsappNumber = document.getElementById("whatsappInput").value.trim();
   ownerCatalog().store.heroTitle = document.getElementById("heroTitleInput").value.trim();
   ownerCatalog().store.heroText = document.getElementById("heroTextInput").value.trim();
@@ -111,16 +140,63 @@ function syncProductEditor() {
   product.slug = product.slug || product.id;
   product.category = categoryId;
   product.categoryLabel = category ? category.label : categoryId;
-  product.price = Number(document.getElementById("productPriceInput").value || 0);
   product.originalPrice = Number(document.getElementById("productOriginalPriceInput").value || 0);
+  product.price = Number(document.getElementById("productPriceInput").value || 0);
+
+  const discountPercent = Number(document.getElementById("productDiscountInput").value || 0);
+  if (discountPercent > 0 && product.originalPrice > 0) {
+    product.price = Math.max(0, Math.round(product.originalPrice * (1 - discountPercent / 100)));
+    document.getElementById("productPriceInput").value = String(product.price);
+  }
+
   product.status = document.getElementById("productStatusInput").value;
   product.badgeText = document.getElementById("productBadgeInput").value.trim();
   product.stock = Number(document.getElementById("productStockInput").value || 0);
+  product.featured = document.getElementById("productFeaturedInput").value === "true";
   product.description = document.getElementById("productDescriptionInput").value.trim();
   product.createdAt = document.getElementById("productCreatedAtInput").value
     ? new Date(`${document.getElementById("productCreatedAtInput").value}T12:00:00`).toISOString()
     : product.createdAt;
+  product.isNewArrival = product.status === "new" || product.featured === true;
   product.updatedAt = new Date().toISOString();
+}
+
+function renderProductPreview() {
+  const product = selectedProduct();
+  const target = document.getElementById("ownerProductPreview");
+  if (!product || !target) return;
+
+  const discount = calculateDiscount(product);
+  const images = (product.colors || []).flatMap((color) => color.images || []).filter(Boolean).slice(0, 4);
+  const totalColorStock = (product.colors || []).reduce((sum, color) => sum + Number(color.stock || 0), 0);
+  const totalSizeStock = (product.sizes || []).reduce((sum, size) => sum + Number(size.stock || 0), 0);
+
+  target.innerHTML = `
+    <div class="owner-preview-media">
+      <img src="${selectedProductImage(product)}" alt="${escapeHtml(product.name)}" />
+    </div>
+    <div class="owner-preview-body">
+      <div class="owner-preview-top">
+        <span class="status-pill">${escapeHtml(product.status || "normal").toUpperCase()}</span>
+        ${discount > 0 ? `<span class="status-pill">-${discount}%</span>` : ""}
+      </div>
+      <h3 class="owner-lock-title">${escapeHtml(product.name)}</h3>
+      <p class="owner-help">${escapeHtml(product.description || "Completa la descripcion para que el cliente entienda rapido el producto.")}</p>
+      <div class="owner-price-row">
+        <strong>${window.CatalogClient.formatMoney(product.price)}</strong>
+        ${Number(product.originalPrice || 0) > 0 ? `<span>${window.CatalogClient.formatMoney(product.originalPrice)}</span>` : ""}
+      </div>
+      <div class="owner-summary-grid">
+        <div class="owner-summary-card"><strong>${escapeHtml(product.categoryLabel || "-")}</strong><span>Categoria</span></div>
+        <div class="owner-summary-card"><strong>${Number(product.stock || 0)}</strong><span>Stock general</span></div>
+        <div class="owner-summary-card"><strong>${totalColorStock}</strong><span>Stock por colores</span></div>
+        <div class="owner-summary-card"><strong>${totalSizeStock}</strong><span>Stock por tallas</span></div>
+      </div>
+      <div class="owner-preview-thumbs">
+        ${images.length ? images.map((image, index) => `<img src="${image}" alt="${escapeHtml(product.name)} ${index + 1}" />`).join("") : `<span class="owner-help">Sube imagenes para ver la galeria aqui.</span>`}
+      </div>
+    </div>
+  `;
 }
 
 function renderSlideEditor() {
@@ -234,12 +310,15 @@ function renderProductEditor() {
   document.getElementById("productCategoryInput").innerHTML = renderCategoryOptions(product.category);
   document.getElementById("productPriceInput").value = product.price;
   document.getElementById("productOriginalPriceInput").value = product.originalPrice || 0;
+  document.getElementById("productDiscountInput").value = calculateDiscount(product) || 0;
   document.getElementById("productStatusInput").value = product.status || "standard";
   document.getElementById("productBadgeInput").value = product.badgeText || "";
   document.getElementById("productStockInput").value = product.stock || 0;
   document.getElementById("productDescriptionInput").value = product.description || "";
   document.getElementById("productCreatedAtInput").value = product.createdAt ? new Date(product.createdAt).toISOString().slice(0, 10) : "";
+  document.getElementById("productFeaturedInput").value = product.featured ? "true" : "false";
 
+  renderProductPreview();
   renderColorEditor(product);
   renderSizeEditor(product);
 }
@@ -279,6 +358,7 @@ function syncAllEditors() {
   syncColors();
   syncSizes();
   ownerCatalog().updatedAt = new Date().toISOString();
+  renderProductPreview();
 }
 
 function rerenderAll() {
@@ -449,11 +529,13 @@ function bindGeneralAutosave() {
     "productCategoryInput",
     "productPriceInput",
     "productOriginalPriceInput",
+    "productDiscountInput",
     "productStatusInput",
     "productBadgeInput",
     "productStockInput",
     "productDescriptionInput",
-    "productCreatedAtInput"
+    "productCreatedAtInput",
+    "productFeaturedInput"
   ].forEach((id) => {
     document.getElementById(id).addEventListener("input", saveDraftOnly);
     document.getElementById(id).addEventListener("change", saveDraftOnly);
@@ -469,7 +551,7 @@ function bindOwnerEvents() {
   document.getElementById("publishButton").addEventListener("click", publishChanges);
   document.getElementById("saveDraftButton").addEventListener("click", () => {
     saveDraftOnly();
-    renderSyncBanner("Borrador guardado. La tienda del mismo navegador ya puede verlo sin recargar.");
+    renderSyncBanner("Borrador guardado. La vista previa del mismo navegador ya puede verlo sin recargar.");
   });
   document.getElementById("downloadDraftButton").addEventListener("click", downloadDraft);
   document.getElementById("clearDraftButton").addEventListener("click", resetToPublished);

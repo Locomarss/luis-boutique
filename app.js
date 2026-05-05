@@ -141,6 +141,7 @@ const translations = {
 
 const appState = {
   page: document.body.dataset.page,
+  previewDraft: new URLSearchParams(window.location.search).get("preview") === "draft",
   language: localStorage.getItem("lb-language-v3") || "es",
   cart: JSON.parse(localStorage.getItem("lb-cart-v3") || "[]"),
   catalog: null,
@@ -199,7 +200,9 @@ async function fetchBaseCatalog() {
 async function fetchActiveCatalog() {
   const live = await window.CatalogClient.fetchLiveCatalog(appState.baseCatalog);
   appState.syncMeta = live;
-  appState.catalog = window.CatalogClient.loadDraft() || live.catalog;
+  const draft = window.CatalogClient.loadDraft();
+  const usableDraft = window.CatalogClient.isCatalogUsable(draft) ? draft : null;
+  appState.catalog = appState.previewDraft && usableDraft ? usableDraft : live.catalog;
 }
 
 function applyTranslations() {
@@ -251,6 +254,10 @@ function filteredProducts() {
   if (appState.filter === "all") return list;
   if (appState.filter === "new") return list.filter((product) => isVisibleNew(product));
   if (appState.filter === "offers") return list.filter((product) => product.status === "offer" || product.status === "sale");
+  if (appState.filter === "accesorios") {
+    const accessoryCategories = new Set(["gorras", "medias", "cadenas", "pasamontanas", "boxers"]);
+    return list.filter((product) => accessoryCategories.has(product.category));
+  }
   return list.filter((product) => product.category === appState.filter);
 }
 
@@ -323,7 +330,9 @@ function resetCarouselTimer() {
 function renderNewProducts() {
   if (appState.page !== "store") return;
   const target = document.getElementById("newGrid");
-  const items = (appState.catalog.products || []).filter((product) => isVisibleNew(product)).slice(0, 6);
+  const items = [...(appState.catalog.products || [])]
+    .sort((first, second) => new Date(second.createdAt || 0).getTime() - new Date(first.createdAt || 0).getTime())
+    .slice(0, 3);
   target.innerHTML = items.map(renderProductCard).join("");
 }
 
@@ -331,6 +340,7 @@ function filterLabel(filter) {
   if (filter === "all") return t("filtersAll");
   if (filter === "new") return t("filtersNew");
   if (filter === "offers") return t("filtersOffers");
+  if (filter === "accesorios") return "Accesorios";
   const category = (appState.catalog.categories || []).find((entry) => entry.id === filter);
   return category ? category.label : filter;
 }
@@ -338,7 +348,11 @@ function filterLabel(filter) {
 function renderFilters() {
   if (appState.page !== "store") return;
   const target = document.getElementById("filterRow");
-  const filters = ["all", "new", "offers"].concat((appState.catalog.categories || []).map((entry) => entry.id));
+  const filters = ["all", "new", "offers", "polos", "pantalones", "zapatos", "accesorios"].concat(
+    (appState.catalog.categories || [])
+      .map((entry) => entry.id)
+      .filter((id) => !["polos", "pantalones", "zapatos"].includes(id))
+  );
   target.innerHTML = filters
     .map((filter) => `<button class="filter-chip ${filter === appState.filter ? "active" : ""}" data-filter="${filter}">${filterLabel(filter)}</button>`)
     .join("");
@@ -369,6 +383,13 @@ function renderProductCard(product) {
       </div>
     </button>
   `;
+}
+
+function activateReveals() {
+  document.querySelectorAll(".reveal").forEach((element, index) => {
+    element.style.transitionDelay = `${Math.min(index * 80, 240)}ms`;
+    element.classList.add("visible");
+  });
 }
 
 function renderProducts() {
@@ -450,11 +471,16 @@ function closeProduct() {
   document.getElementById("productModal").classList.remove("open");
 }
 
-function renderOptionChip({ label, active, disabled, color }, attributes) {
-  const style = color ? `style="--chip:${color}"` : "";
-  const disabledClass = disabled ? "sold-out" : "";
-  return `<button class="color-chip ${active ? "active" : ""} ${disabledClass}" ${style} ${attributes}>${label}</button>`;
-}
+function renderOptionChip({ label, active, disabled, color, kind = "color" }, attributes) {
+    const style = color ? `style="--chip:${color}"` : "";
+    const disabledClass = disabled ? "sold-out" : "";
+    const className = kind === "size" ? "size-chip" : "color-chip";
+    const content =
+      kind === "color"
+        ? `<span class="color-chip-dot" aria-hidden="true"></span><span>${label}</span>`
+        : `<span>${label}</span>`;
+    return `<button class="${className} ${active ? "active" : ""} ${disabledClass}" ${style} ${attributes}>${content}</button>`;
+  }
 
 function renderProductModal() {
   const product = selectedProduct();
@@ -483,28 +509,30 @@ function renderProductModal() {
 
   document.getElementById("modalColorRow").innerHTML = (product.colors || [])
     .map((entry) =>
-      renderOptionChip(
-        {
-          label: entry.name,
-          active: entry.id === appState.selectedColorId,
-          disabled: !entry.available || Number(entry.stock || 0) <= 0,
-          color: entry.hex
-        },
-        `data-color-id="${entry.id}"`
-      )
+        renderOptionChip(
+          {
+            label: entry.name,
+            active: entry.id === appState.selectedColorId,
+            disabled: !entry.available || Number(entry.stock || 0) <= 0,
+            color: entry.hex,
+            kind: "color"
+          },
+          `data-color-id="${entry.id}"`
+        )
     )
     .join("");
 
   document.getElementById("modalSizeRow").innerHTML = (product.sizes || [])
     .map((entry) =>
-      renderOptionChip(
-        {
-          label: entry.label,
-          active: entry.label === appState.selectedSizeLabel,
-          disabled: !entry.available || Number(entry.stock || 0) <= 0
-        },
-        `data-size-label="${entry.label}"`
-      )
+        renderOptionChip(
+          {
+            label: entry.label,
+            active: entry.label === appState.selectedSizeLabel,
+            disabled: !entry.available || Number(entry.stock || 0) <= 0,
+            kind: "size"
+          },
+          `data-size-label="${entry.label}"`
+        )
     )
     .join("");
 
@@ -648,13 +676,14 @@ function renderPage() {
 
   renderProductModal();
   renderCart();
+  activateReveals();
 }
 
 function listenForOwnerDrafts() {
   const channel = window.CatalogClient.getBroadcastChannel();
   if (channel) {
     channel.onmessage = (event) => {
-      if (event.data?.type === "catalog:update") {
+      if (event.data?.type === "catalog:update" && (appState.previewDraft || event.data?.source === "publish")) {
         appState.catalog = event.data.catalog;
         renderPage();
       }
@@ -665,7 +694,7 @@ function listenForOwnerDrafts() {
   }
 
   window.addEventListener("storage", (event) => {
-    if (event.key === window.CatalogClient.DRAFT_KEY) {
+    if (appState.previewDraft && event.key === window.CatalogClient.DRAFT_KEY) {
       appState.catalog = window.CatalogClient.mergeCatalog(appState.baseCatalog);
       renderPage();
     }
@@ -675,11 +704,9 @@ function listenForOwnerDrafts() {
 async function refreshRemoteCatalog(forceRender) {
   const live = await window.CatalogClient.fetchLiveCatalog(appState.baseCatalog);
   appState.syncMeta = live;
-  if (window.CatalogClient.loadDraft()) {
-    appState.catalog = window.CatalogClient.loadDraft();
-  } else {
-    appState.catalog = live.catalog;
-  }
+  const draft = window.CatalogClient.loadDraft();
+  const usableDraft = window.CatalogClient.isCatalogUsable(draft) ? draft : null;
+  appState.catalog = appState.previewDraft && usableDraft ? usableDraft : live.catalog;
   if (forceRender !== false) {
     renderPage();
   }

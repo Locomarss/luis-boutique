@@ -24,7 +24,8 @@
           <label class="ghost-btn" for="importDraftInput">Importar catalogo JSON</label>
           <input id="importDraftInput" type="file" accept="application/json" hidden />
           <button class="ghost-btn" id="clearDraftButton">Volver al catalogo publicado</button>
-          <a class="ghost-btn" href="../index.html" target="_blank" rel="noreferrer">Abrir tienda</a>
+          <a class="ghost-btn" href="../index.html" target="_blank" rel="noreferrer">Abrir tienda publicada</a>
+          <a class="ghost-btn" href="../index.html?preview=draft" target="_blank" rel="noreferrer">Abrir vista previa</a>
         </div>
       </section>
 
@@ -51,10 +52,30 @@
                 <h2 class="panel-title">Datos de la tienda</h2>
               </div>
             </div>
+            <div class="owner-lock-grid" style="margin-top:18px">
+              <div class="owner-lock-card">
+                <span class="eyebrow">Bloqueado</span>
+                <h3 class="owner-lock-title">Marca fija</h3>
+                <p class="owner-help">El nombre de la tienda y el logotipo quedan protegidos para que nadie los cambie por error.</p>
+                <div class="owner-brand-lockup">
+                  <img src="../assets/luis-boutique-logo.jpeg" alt="Logo de Luis Boutique" />
+                  <div>
+                    <strong>LUIS BOUTIQUE</strong>
+                    <p class="owner-help" style="margin:6px 0 0">Logo y nombre no editables.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="owner-lock-card">
+                <span class="eyebrow">Control</span>
+                <h3 class="owner-lock-title">Que si puedes editar</h3>
+                <p class="owner-help">WhatsApp, textos principales, video, productos, colores, tallas, precios, rebajas, stock e imagenes.</p>
+              </div>
+            </div>
             <div class="field-grid" style="margin-top:18px">
               <div class="field">
                 <label for="storeNameInput">Nombre de la tienda</label>
-                <input id="storeNameInput" type="text" />
+                <input id="storeNameInput" type="text" readonly disabled />
+                <span class="field-help">Dato fijo protegido.</span>
               </div>
               <div class="field">
                 <label for="whatsappInput">Numero de WhatsApp</label>
@@ -102,6 +123,8 @@
                 <h2 class="panel-title">Editor de producto</h2>
               </div>
             </div>
+            <p class="owner-help" style="margin-top:12px">Primero veras el producto como lo vera el cliente. Debajo estan los campos que puedes cambiar.</p>
+            <div class="owner-preview-card" id="ownerProductPreview"></div>
             <div class="field-grid" style="margin-top:18px">
               <div class="field">
                 <label for="productNameInput">Nombre del producto</label>
@@ -118,6 +141,11 @@
               <div class="field">
                 <label for="productOriginalPriceInput">Precio original RD$</label>
                 <input id="productOriginalPriceInput" type="number" min="0" />
+              </div>
+              <div class="field">
+                <label for="productDiscountInput">Rebaja %</label>
+                <input id="productDiscountInput" type="number" min="0" max="99" />
+                <span class="field-help">Si pones un porcentaje y hay precio original, se calcula el precio actual.</span>
               </div>
               <div class="field">
                 <label for="productStatusInput">Etiqueta visual</label>
@@ -140,6 +168,13 @@
                 <label for="productCreatedAtInput">Fecha de nuevo</label>
                 <input id="productCreatedAtInput" type="date" />
                 <span class="field-help">Los productos subidos se marcan como nuevos por 7 dias desde esta fecha.</span>
+              </div>
+              <div class="field">
+                <label for="productFeaturedInput">Destacar en nuevos</label>
+                <select id="productFeaturedInput">
+                  <option value="false">No</option>
+                  <option value="true">Si</option>
+                </select>
               </div>
               <div class="field full">
                 <label for="productDescriptionInput">Descripcion</label>

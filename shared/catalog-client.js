@@ -65,6 +65,17 @@
     return draft ? draft : baseCatalog;
   }
 
+  function isCatalogUsable(catalog) {
+    return Boolean(
+      catalog &&
+        catalog.store &&
+        typeof catalog.store === "object" &&
+        Array.isArray(catalog.products) &&
+        Array.isArray(catalog.categories) &&
+        catalog.products.length > 0
+    );
+  }
+
   function productById(catalog, productId) {
     return (catalog.products || []).find((product) => product.id === productId) || null;
   }
@@ -325,6 +336,7 @@
     clone,
     formatMoney,
     mergeCatalog,
+    isCatalogUsable,
     loadDraft,
     saveDraft,
     clearDraft,
