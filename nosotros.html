@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LUIS BOUTIQUE | Nosotros</title>
-    <meta name="description" content="Conoce la historia, la energia visual y la vibra urbana de LUIS BOUTIQUE." />
+    <meta name="description" content="Pagina de nosotros de LUIS BOUTIQUE con informacion general y un mini video que se reproduce al entrar en pantalla." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -18,8 +18,8 @@
       </a>
 
       <nav class="header-nav">
-        <a href="./index.html">Tienda</a>
-        <a class="active" href="./nosotros.html">Nosotros</a>
+        <a href="./index.html" data-i18n="navStore">Tienda</a>
+        <a class="active" href="./nosotros.html" data-i18n="navAbout">Nosotros</a>
       </nav>
 
       <div class="header-actions">
@@ -34,45 +34,50 @@
     <aside class="side-panel" id="cartPanel" aria-hidden="true">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">Carrito</p>
-          <h2 class="panel-title">Tu pedido</h2>
+          <p class="eyebrow" data-i18n="cartEyebrow">Carrito</p>
+          <h2 class="panel-title" data-i18n="cartTitle">Tu pedido</h2>
         </div>
-        <button class="icon-btn" data-close="cart">✕</button>
+        <button class="icon-btn" data-close="cart" aria-label="Cerrar carrito">✕</button>
       </div>
       <div class="cart-list" id="cartList"></div>
       <div class="panel-summary">
         <div class="summary-row">
-          <span>Total</span>
+          <span data-i18n="totalLabel">Total</span>
           <strong id="cartTotal">RD$0</strong>
         </div>
-        <button class="cta-btn" id="checkoutButton">Comprar por WhatsApp</button>
+        <button class="action-btn" id="checkoutButton" data-i18n="checkoutButton">Comprar por WhatsApp</button>
       </div>
     </aside>
 
     <aside class="side-panel" id="settingsPanel" aria-hidden="true">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">Menu</p>
-          <h2 class="panel-title">Preferencias</h2>
+          <p class="eyebrow" data-i18n="menuEyebrow">Menu</p>
+          <h2 class="panel-title" data-i18n="menuTitle">Preferencias</h2>
         </div>
-        <button class="icon-btn" data-close="settings">✕</button>
+        <button class="icon-btn" data-close="settings" aria-label="Cerrar menu">✕</button>
       </div>
-      <div class="settings-stack">
-        <div class="switch-row">
-          <div>
-            <strong>Modo de color</strong>
-            <p class="panel-note">Cambia entre vista clara y oscura.</p>
+      <div class="setting-stack">
+        <div class="editor-card">
+          <div class="settings-row">
+            <div>
+              <strong data-i18n="themeTitle">Modo de color</strong>
+              <p class="panel-note" data-i18n="themeText">Cambia entre vista clara y oscura.</p>
+            </div>
+            <button class="theme-btn" id="themeToggle">🌙</button>
           </div>
-          <button class="theme-toggle" id="themeToggle">🌙</button>
         </div>
-        <div class="switch-row">
-          <div>
-            <strong>Paginas</strong>
-            <p class="panel-note">Ve a la tienda o vuelve a esta pagina cuando quieras.</p>
-          </div>
-          <div class="hero-links">
-            <a class="text-btn" href="./index.html">Tienda</a>
-            <a class="text-btn" href="./nosotros.html">Nosotros</a>
+        <div class="editor-card">
+          <strong data-i18n="languageTitle">Idioma</strong>
+          <p class="panel-note" data-i18n="languageText">Escoge Espanol, Ingles o Creole.</p>
+          <div class="lang-row" id="languageRow"></div>
+        </div>
+        <div class="editor-card">
+          <strong data-i18n="pageLinksTitle">Paginas</strong>
+          <p class="panel-note" data-i18n="pageLinksText">Cambia entre tienda y la informacion de la boutique.</p>
+          <div class="section-actions">
+            <a class="ghost-btn" href="./index.html" data-i18n="navStore">Tienda</a>
+            <a class="ghost-btn" href="./nosotros.html" data-i18n="navAbout">Nosotros</a>
           </div>
         </div>
       </div>
@@ -81,29 +86,28 @@
     <div class="panel-backdrop" id="panelBackdrop"></div>
 
     <main class="layout">
-      <section class="about-hero reveal">
-        <div class="about-copy">
-          <span class="eyebrow">Nosotros</span>
-          <h1 class="about-title" id="aboutHeadline">Una boutique pensada para quienes quieren verse duros sin complicarse.</h1>
-          <p class="about-text" id="aboutIntro">LUIS BOUTIQUE mezcla moda urbana, accesorios y piezas seleccionadas para que el look se sienta premium pero accesible.</p>
-          <div class="hero-actions">
-            <a class="cta-btn" href="./index.html">Entrar a la tienda</a>
+      <section class="content-card reveal">
+        <div class="about-layout">
+          <div>
+            <span class="eyebrow" data-i18n="aboutEyebrow">Nosotros</span>
+            <h1 class="about-title" id="aboutHeadline"></h1>
+            <p class="about-text" id="aboutIntro"></p>
+            <div class="hero-actions">
+              <a class="action-btn" href="./index.html" data-i18n="goStoreButton">Entrar a la tienda</a>
+            </div>
+          </div>
+          <div class="video-shell">
+            <video id="aboutVideo" muted loop playsinline preload="metadata" poster="">
+              <source id="aboutVideoSource" src="" type="video/mp4" />
+            </video>
           </div>
         </div>
-        <div class="video-card reveal">
-          <video id="aboutVideo" muted loop playsinline preload="metadata" poster="">
-            <source id="aboutVideoSource" src="" type="video/mp4" />
-          </video>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="about-grid" id="aboutBlocks"></div>
+        <div class="about-grid" id="aboutGrid"></div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <p>Terminos y condiciones</p>
+      <p data-i18n="termsLabel">Terminos y condiciones</p>
       <div class="footer-links">
         <a href="https://wa.me/18099077400" target="_blank" rel="noreferrer">WhatsApp</a>
         <a href="https://www.instagram.com/luisboutique__/" target="_blank" rel="noreferrer">Instagram</a>

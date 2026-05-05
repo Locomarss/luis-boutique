@@ -1,69 +1,37 @@
 const ownerState = {
   catalog: null,
-  repo: "Locomarss/luis-boutique",
-  branch: "main",
-  token: "",
   selectedProductId: null
 };
 
-function ownerElements() {
-  return {
-    login: document.getElementById("ownerLogin"),
-    dashboard: document.getElementById("ownerDashboard"),
-    accessCode: document.getElementById("accessCode"),
-    githubToken: document.getElementById("githubToken"),
-    repoName: document.getElementById("repoName"),
-    branchName: document.getElementById("branchName"),
-    loginMessage: document.getElementById("loginMessage"),
-    productList: document.getElementById("ownerProductList")
-  };
+function ownerCatalog() {
+  return ownerState.catalog;
 }
 
-async function loadCatalog() {
+function selectedProduct() {
+  return ownerCatalog().products.find((product) => product.id === ownerState.selectedProductId) || ownerCatalog().products[0];
+}
+
+async function fetchPublishedCatalog() {
   const response = await fetch("../data/catalog.json?v=" + Date.now());
-  if (!response.ok) throw new Error("No se pudo cargar data/catalog.json");
-  ownerState.catalog = await response.json();
+  if (!response.ok) {
+    throw new Error("No se pudo cargar el catalogo publicado.");
+  }
+  return response.json();
 }
 
-function currentProduct() {
-  return ownerState.catalog.products.find((product) => product.id === ownerState.selectedProductId) || ownerState.catalog.products[0];
+function saveLiveDraft() {
+  ownerCatalog().updatedAt = new Date().toISOString();
+  window.CatalogClient.saveDraft(ownerCatalog());
 }
 
-function setMessage(text, isError) {
-  const message = document.getElementById("loginMessage");
-  message.textContent = text;
-  message.style.color = isError ? "#d51317" : "";
-}
-
-function fillGeneralFields() {
-  document.getElementById("storeName").value = ownerState.catalog.store.name;
-  document.getElementById("whatsNumber").value = ownerState.catalog.store.whatsappNumber;
-  document.getElementById("heroTitleInput").value = ownerState.catalog.store.heroTitle;
-  document.getElementById("heroTextInput").value = ownerState.catalog.store.heroText;
-  document.getElementById("aboutHeadlineInput").value = ownerState.catalog.about.headline;
-  document.getElementById("aboutIntroInput").value = ownerState.catalog.about.intro;
-  document.getElementById("aboutVideoInput").value = ownerState.catalog.about.video.src;
-  document.getElementById("lastUpdatedText").textContent = `Ultima actualizacion registrada: ${new Date(ownerState.catalog.updatedAt).toLocaleString("es-DO")}`;
-}
-
-function syncGeneralFields() {
-  ownerState.catalog.store.name = document.getElementById("storeName").value.trim();
-  ownerState.catalog.store.whatsappNumber = document.getElementById("whatsNumber").value.trim();
-  ownerState.catalog.store.heroTitle = document.getElementById("heroTitleInput").value.trim();
-  ownerState.catalog.store.heroText = document.getElementById("heroTextInput").value.trim();
-  ownerState.catalog.about.headline = document.getElementById("aboutHeadlineInput").value.trim();
-  ownerState.catalog.about.intro = document.getElementById("aboutIntroInput").value.trim();
-  ownerState.catalog.about.video.src = document.getElementById("aboutVideoInput").value.trim();
-}
-
-function renderProductList() {
-  const target = ownerElements().productList;
-  target.innerHTML = ownerState.catalog.products
+function renderOwnerList() {
+  const target = document.getElementById("ownerProductList");
+  target.innerHTML = ownerCatalog().products
     .map(
       (product) => `
-        <button class="product-pill ${product.id === ownerState.selectedProductId ? "active" : ""}" data-product-id="${product.id}">
+        <button class="owner-list-btn ${product.id === ownerState.selectedProductId ? "active" : ""}" data-product-id="${product.id}">
           <strong>${product.name}</strong>
-          <div class="muted">${product.categoryLabel} · ${window.CatalogClient.formatMoney(product.price)}</div>
+          <div class="owner-help">${product.categoryLabel} · ${window.CatalogClient.formatMoney(product.price)}</div>
         </button>
       `
     )
@@ -73,32 +41,105 @@ function renderProductList() {
     const button = event.target.closest("[data-product-id]");
     if (!button) return;
     ownerState.selectedProductId = button.dataset.productId;
-    renderProductList();
+    renderOwnerList();
     renderProductEditor();
   };
 }
 
-function renderCategoryOptions(selected) {
-  return ownerState.catalog.categories
-    .map((category) => `<option value="${category.id}" ${category.id === selected ? "selected" : ""}>${category.label}</option>`)
+function renderCategoryOptions(selectedId) {
+  return ownerCatalog().categories
+    .map((category) => `<option value="${category.id}" ${category.id === selectedId ? "selected" : ""}>${category.label}</option>`)
     .join("");
 }
 
-function renderProductEditor() {
-  const product = currentProduct();
+function fillGeneralEditor() {
+  document.getElementById("storeNameInput").value = ownerCatalog().store.name;
+  document.getElementById("whatsappInput").value = ownerCatalog().store.whatsappNumber;
+  document.getElementById("heroTitleInput").value = ownerCatalog().store.heroTitle;
+  document.getElementById("heroTextInput").value = ownerCatalog().store.heroText;
+  document.getElementById("aboutHeadlineInput").value = ownerCatalog().about.headline;
+  document.getElementById("aboutIntroInput").value = ownerCatalog().about.intro;
+  document.getElementById("aboutVideoInput").value = ownerCatalog().about.video.src;
+}
+
+function syncGeneralEditor() {
+  ownerCatalog().store.name = document.getElementById("storeNameInput").value.trim();
+  ownerCatalog().store.whatsappNumber = document.getElementById("whatsappInput").value.trim();
+  ownerCatalog().store.heroTitle = document.getElementById("heroTitleInput").value.trim();
+  ownerCatalog().store.heroText = document.getElementById("heroTextInput").value.trim();
+  ownerCatalog().about.headline = document.getElementById("aboutHeadlineInput").value.trim();
+  ownerCatalog().about.intro = document.getElementById("aboutIntroInput").value.trim();
+  ownerCatalog().about.video.src = document.getElementById("aboutVideoInput").value.trim();
+}
+
+function syncProductEditor() {
+  syncGeneralEditor();
+  const product = selectedProduct();
   if (!product) return;
 
-  document.getElementById("productName").value = product.name;
-  document.getElementById("productCategory").innerHTML = renderCategoryOptions(product.category);
-  document.getElementById("productPrice").value = product.price;
-  document.getElementById("productOriginalPrice").value = product.originalPrice;
-  document.getElementById("productStatus").value = product.status;
-  document.getElementById("productBadgeText").value = product.badgeText;
-  document.getElementById("productDescription").value = product.description;
-  document.getElementById("productStock").value = product.stock;
-  document.getElementById("productNewArrival").value = String(product.isNewArrival);
+  const categoryId = document.getElementById("productCategoryInput").value;
+  const category = ownerCatalog().categories.find((entry) => entry.id === categoryId);
 
-  document.getElementById("colorsEditor").innerHTML = product.colors
+  product.name = document.getElementById("productNameInput").value.trim();
+  product.category = categoryId;
+  product.categoryLabel = category ? category.label : categoryId;
+  product.price = Number(document.getElementById("productPriceInput").value || 0);
+  product.originalPrice = Number(document.getElementById("productOriginalPriceInput").value || 0);
+  product.status = document.getElementById("productStatusInput").value;
+  product.badgeText = document.getElementById("productBadgeInput").value.trim();
+  product.stock = Number(document.getElementById("productStockInput").value || 0);
+  product.description = document.getElementById("productDescriptionInput").value.trim();
+  product.createdAt = document.getElementById("productCreatedAtInput").value
+    ? new Date(document.getElementById("productCreatedAtInput").value + "T12:00:00").toISOString()
+    : product.createdAt;
+  product.updatedAt = new Date().toISOString();
+}
+
+function renderSlideEditor() {
+  const target = document.getElementById("slideEditorList");
+  const slides = ownerCatalog().store.carouselSlides || [];
+
+  target.innerHTML = slides
+    .map(
+      (slide, index) => `
+        <div class="mini-card" data-slide-index="${index}">
+          <div class="mini-row">
+            <div class="field"><label>Eyebrow</label><input data-slide-field="eyebrow" value="${slide.eyebrow}" /></div>
+            <div class="field"><label>Titulo</label><input data-slide-field="title" value="${slide.title}" /></div>
+            <div class="field full"><label>Texto</label><textarea data-slide-field="text">${slide.text}</textarea></div>
+            <div class="field full"><label>Imagen</label><input data-slide-field="image" value="${slide.image}" /></div>
+          </div>
+          <div class="upload-line">
+            <label class="ghost-btn" for="slideUpload-${index}">Subir imagen real</label>
+            <input id="slideUpload-${index}" data-slide-upload="${index}" type="file" accept="image/*" hidden />
+            <span class="owner-help">Tambien puedes pegar un enlace directo arriba.</span>
+          </div>
+          <div class="mini-actions">
+            <button class="small-btn" data-slide-move="up" data-slide-index="${index}">↑</button>
+            <button class="small-btn" data-slide-move="down" data-slide-index="${index}">↓</button>
+            <button class="ghost-btn" data-remove-slide="${index}">Quitar slide</button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
+function syncSlides() {
+  document.querySelectorAll("[data-slide-index]").forEach((card) => {
+    const index = Number(card.dataset.slideIndex);
+    const slide = ownerCatalog().store.carouselSlides[index];
+    if (!slide) return;
+    slide.eyebrow = card.querySelector("[data-slide-field='eyebrow']").value.trim();
+    slide.title = card.querySelector("[data-slide-field='title']").value.trim();
+    slide.text = card.querySelector("[data-slide-field='text']").value.trim();
+    slide.image = card.querySelector("[data-slide-field='image']").value.trim();
+  });
+}
+
+function renderColorEditor(product) {
+  const target = document.getElementById("colorsEditor");
+  target.innerHTML = product.colors
     .map(
       (color, index) => `
         <div class="mini-card" data-color-index="${index}">
@@ -117,13 +158,23 @@ function renderProductEditor() {
             <div class="field full"><label>Imagen 2</label><input data-color-image="1" value="${color.images[1] || ""}" /></div>
             <div class="field full"><label>Imagen 3</label><input data-color-image="2" value="${color.images[2] || ""}" /></div>
           </div>
-          <div class="mini-actions"><button class="ghost-btn" data-remove-color="${index}">Quitar color</button></div>
+          <div class="upload-line">
+            <label class="ghost-btn" for="colorUpload-${index}">Subir imagen real</label>
+            <input id="colorUpload-${index}" data-color-upload="${index}" type="file" accept="image/*" multiple hidden />
+            <span class="owner-help">Puedes subir hasta 3 imagenes por color.</span>
+          </div>
+          <div class="mini-actions">
+            <button class="ghost-btn" data-remove-color="${index}">Quitar color</button>
+          </div>
         </div>
       `
     )
     .join("");
+}
 
-  document.getElementById("sizesEditor").innerHTML = product.sizes
+function renderSizeEditor(product) {
+  const target = document.getElementById("sizesEditor");
+  target.innerHTML = product.sizes
     .map(
       (size, index) => `
         <div class="mini-card" data-size-index="${index}">
@@ -138,196 +189,319 @@ function renderProductEditor() {
               </select>
             </div>
           </div>
-          <div class="mini-actions"><button class="ghost-btn" data-remove-size="${index}">Quitar talla</button></div>
+          <div class="mini-actions">
+            <button class="ghost-btn" data-remove-size="${index}">Quitar talla</button>
+          </div>
         </div>
       `
     )
     .join("");
 }
 
-function syncProductEditor() {
-  syncGeneralFields();
-  const product = currentProduct();
-  if (!product) {
-    return;
-  }
-  const categoryId = document.getElementById("productCategory").value;
-  const category = ownerState.catalog.categories.find((item) => item.id === categoryId);
+function renderProductEditor() {
+  const product = selectedProduct();
+  if (!product) return;
 
-  product.name = document.getElementById("productName").value.trim();
-  product.category = categoryId;
-  product.categoryLabel = category ? category.label : categoryId;
-  product.price = Number(document.getElementById("productPrice").value || 0);
-  product.originalPrice = Number(document.getElementById("productOriginalPrice").value || 0);
-  product.status = document.getElementById("productStatus").value;
-  product.badgeText = document.getElementById("productBadgeText").value.trim();
-  product.description = document.getElementById("productDescription").value.trim();
-  product.stock = Number(document.getElementById("productStock").value || 0);
-  product.isNewArrival = document.getElementById("productNewArrival").value === "true";
+  document.getElementById("productNameInput").value = product.name;
+  document.getElementById("productCategoryInput").innerHTML = renderCategoryOptions(product.category);
+  document.getElementById("productPriceInput").value = product.price;
+  document.getElementById("productOriginalPriceInput").value = product.originalPrice || 0;
+  document.getElementById("productStatusInput").value = product.status || "standard";
+  document.getElementById("productBadgeInput").value = product.badgeText || "";
+  document.getElementById("productStockInput").value = product.stock || 0;
+  document.getElementById("productDescriptionInput").value = product.description || "";
+  document.getElementById("productCreatedAtInput").value = product.createdAt ? new Date(product.createdAt).toISOString().slice(0, 10) : "";
 
+  renderColorEditor(product);
+  renderSizeEditor(product);
+}
+
+function syncColors() {
+  const product = selectedProduct();
   document.querySelectorAll("[data-color-index]").forEach((card) => {
     const index = Number(card.dataset.colorIndex);
     const color = product.colors[index];
+    if (!color) return;
     color.name = card.querySelector("[data-color-field='name']").value.trim();
     color.hex = card.querySelector("[data-color-field='hex']").value.trim();
     color.stock = Number(card.querySelector("[data-color-field='stock']").value || 0);
     color.available = card.querySelector("[data-color-field='available']").value === "true";
     color.images = [0, 1, 2]
-      .map((position) => card.querySelector(`[data-color-image='${position}']`).value.trim())
+      .map((slot) => card.querySelector(`[data-color-image='${slot}']`).value.trim())
       .filter(Boolean);
+    color.coverImage = color.images[0] || color.coverImage || "";
   });
+}
 
+function syncSizes() {
+  const product = selectedProduct();
   document.querySelectorAll("[data-size-index]").forEach((card) => {
     const index = Number(card.dataset.sizeIndex);
     const size = product.sizes[index];
+    if (!size) return;
     size.label = card.querySelector("[data-size-field='label']").value.trim();
     size.stock = Number(card.querySelector("[data-size-field='stock']").value || 0);
     size.available = card.querySelector("[data-size-field='available']").value === "true";
   });
 }
 
-function addProduct() {
-  const product = window.CatalogClient.buildEmptyProduct(ownerState.catalog);
-  ownerState.catalog.products.unshift(product);
-  ownerState.selectedProductId = product.id;
-  renderProductList();
+function syncAllEditors() {
+  syncSlides();
+  syncProductEditor();
+  syncColors();
+  syncSizes();
+  ownerCatalog().updatedAt = new Date().toISOString();
+}
+
+function rerenderAll() {
+  renderOwnerList();
   renderProductEditor();
+  renderSlideEditor();
+}
+
+function storeAndBroadcast() {
+  syncAllEditors();
+  saveLiveDraft();
+  rerenderAll();
+}
+
+function saveWithoutRerender() {
+  syncAllEditors();
+  saveLiveDraft();
+}
+
+async function handleColorUpload(input) {
+  const product = selectedProduct();
+  const color = product.colors[Number(input.dataset.colorUpload)];
+  if (!color || !input.files.length) return;
+  const files = Array.from(input.files).slice(0, 3);
+  color.images = [];
+  for (const file of files) {
+    color.images.push(await window.CatalogClient.fileToDataUrl(file, 1100));
+  }
+  color.coverImage = color.images[0] || color.coverImage || "";
+  storeAndBroadcast();
+}
+
+async function handleSlideUpload(input) {
+  const slide = ownerCatalog().store.carouselSlides[Number(input.dataset.slideUpload)];
+  if (!slide || !input.files[0]) return;
+  slide.image = await window.CatalogClient.fileToDataUrl(input.files[0], 1400);
+  storeAndBroadcast();
+}
+
+function addProduct() {
+  syncAllEditors();
+  const product = window.CatalogClient.buildEmptyProduct(ownerCatalog());
+  ownerCatalog().products.unshift(product);
+  ownerState.selectedProductId = product.id;
+  saveLiveDraft();
+  rerenderAll();
 }
 
 function deleteProduct() {
-  if (!ownerState.selectedProductId) return;
-  if (ownerState.catalog.products.length <= 1) {
+  if (ownerCatalog().products.length <= 1) {
     window.alert("Debes dejar al menos un producto en el catalogo.");
     return;
   }
   const confirmed = window.confirm("Seguro que quieres eliminar este producto?");
   if (!confirmed) return;
-  ownerState.catalog.products = ownerState.catalog.products.filter((product) => product.id !== ownerState.selectedProductId);
-  ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
-  renderProductList();
+  ownerCatalog().products = ownerCatalog().products.filter((product) => product.id !== ownerState.selectedProductId);
+  ownerState.selectedProductId = ownerCatalog().products[0].id;
+  saveLiveDraft();
+  rerenderAll();
+}
+
+function addColor() {
+  const product = selectedProduct();
+  product.colors.push({
+    id: `color-${Date.now()}`,
+    name: "Nuevo color",
+    hex: "#cccccc",
+    available: true,
+    stock: 1,
+    images: [],
+    coverImage: ""
+  });
+  saveLiveDraft();
   renderProductEditor();
 }
 
-async function publishCatalog() {
-  syncProductEditor();
-  const confirmed = window.confirm("Confirmas publicar estos cambios a la nube?");
-  if (!confirmed) return;
-
-  ownerState.catalog.updatedAt = new Date().toISOString();
-
-  const repo = ownerState.repo;
-  const branch = ownerState.branch;
-  const headers = {
-    Accept: "application/vnd.github+json",
-    Authorization: `Bearer ${ownerState.token}`
-  };
-
-  const getResponse = await fetch(`https://api.github.com/repos/${repo}/contents/data/catalog.json?ref=${branch}`, { headers });
-  if (!getResponse.ok) {
-    throw new Error("No se pudo leer el archivo remoto data/catalog.json");
-  }
-
-  const remoteFile = await getResponse.json();
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(ownerState.catalog, null, 2))));
-
-  const saveResponse = await fetch(`https://api.github.com/repos/${repo}/contents/data/catalog.json`, {
-    method: "PUT",
-    headers,
-    body: JSON.stringify({
-      message: "Update catalog from owner console",
-      content,
-      sha: remoteFile.sha,
-      branch
-    })
+function addSize() {
+  const product = selectedProduct();
+  product.sizes.push({
+    label: "Nueva",
+    available: true,
+    stock: 1
   });
+  saveLiveDraft();
+  renderProductEditor();
+}
 
-  if (!saveResponse.ok) {
-    const problem = await saveResponse.text();
-    throw new Error(problem);
-  }
+function addSlide() {
+  ownerCatalog().store.carouselSlides.push({
+    id: `slide-${Date.now()}`,
+    eyebrow: "COLECCION DESTACADA",
+    title: "Nuevo slide",
+    text: "Edita este texto desde la consola owner.",
+    image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&h=1500&q=80"
+  });
+  saveLiveDraft();
+  renderSlideEditor();
+}
 
-  document.getElementById("lastUpdatedText").textContent = "Cambios publicados. GitHub Pages puede tardar unos segundos en reflejarlos.";
-  window.alert("Cambios publicados correctamente.");
+function moveSlide(index, direction) {
+  const slides = ownerCatalog().store.carouselSlides;
+  const nextIndex = direction === "up" ? index - 1 : index + 1;
+  if (nextIndex < 0 || nextIndex >= slides.length) return;
+  const temp = slides[index];
+  slides[index] = slides[nextIndex];
+  slides[nextIndex] = temp;
+  saveLiveDraft();
+  renderSlideEditor();
+}
+
+function downloadDraft() {
+  syncAllEditors();
+  const blob = new Blob([JSON.stringify(ownerCatalog(), null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "luis-boutique-catalog.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importDraft(file) {
+  const text = await file.text();
+  const parsed = JSON.parse(text);
+  ownerState.catalog = parsed;
+  ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
+  saveLiveDraft();
+  fillGeneralEditor();
+  rerenderAll();
+}
+
+function clearDraft() {
+  const confirmed = window.confirm("Seguro que quieres borrar el borrador local y volver al catalogo publicado?");
+  if (!confirmed) return;
+  window.CatalogClient.clearDraft();
+  window.location.reload();
+}
+
+function bindGeneralAutosave() {
+  [
+    "storeNameInput",
+    "whatsappInput",
+    "heroTitleInput",
+    "heroTextInput",
+    "aboutHeadlineInput",
+    "aboutIntroInput",
+    "aboutVideoInput",
+    "productNameInput",
+    "productCategoryInput",
+    "productPriceInput",
+    "productOriginalPriceInput",
+    "productStatusInput",
+    "productBadgeInput",
+    "productStockInput",
+    "productDescriptionInput",
+    "productCreatedAtInput"
+  ].forEach((id) => {
+    document.getElementById(id).addEventListener("input", saveWithoutRerender);
+    document.getElementById(id).addEventListener("change", saveWithoutRerender);
+  });
 }
 
 function bindOwnerEvents() {
   document.getElementById("addProductButton").addEventListener("click", addProduct);
   document.getElementById("deleteProductButton").addEventListener("click", deleteProduct);
-  document.getElementById("previewBuyerButton").addEventListener("click", () => window.open("../index.html", "_blank"));
-  document.getElementById("publishButton").addEventListener("click", async () => {
-    try {
-      await publishCatalog();
-      renderProductList();
-      renderProductEditor();
-    } catch (error) {
-      window.alert("No se pudo publicar: " + error.message);
-    }
+  document.getElementById("addColorButton").addEventListener("click", addColor);
+  document.getElementById("addSizeButton").addEventListener("click", addSize);
+  document.getElementById("addSlideButton").addEventListener("click", addSlide);
+  document.getElementById("saveDraftButton").addEventListener("click", () => {
+    storeAndBroadcast();
+    window.alert("Borrador guardado en este navegador.");
   });
-
-  document.getElementById("addColorButton").addEventListener("click", () => {
-    currentProduct().colors.push({
-      id: `color-${Date.now()}`,
-      name: "Nuevo color",
-      hex: "#bbbbbb",
-      available: true,
-      stock: 1,
-      images: []
-    });
-    renderProductEditor();
-  });
-
-  document.getElementById("addSizeButton").addEventListener("click", () => {
-    currentProduct().sizes.push({
-      label: "Nueva",
-      available: true,
-      stock: 1
-    });
-    renderProductEditor();
+  document.getElementById("downloadDraftButton").addEventListener("click", downloadDraft);
+  document.getElementById("clearDraftButton").addEventListener("click", clearDraft);
+  document.getElementById("importDraftInput").addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    await importDraft(file);
+    event.target.value = "";
   });
 
   document.getElementById("colorsEditor").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-remove-color]");
-    if (!button) return;
-    currentProduct().colors.splice(Number(button.dataset.removeColor), 1);
-    renderProductEditor();
+    const removeButton = event.target.closest("[data-remove-color]");
+    if (removeButton) {
+      selectedProduct().colors.splice(Number(removeButton.dataset.removeColor), 1);
+      saveLiveDraft();
+      renderProductEditor();
+    }
   });
 
   document.getElementById("sizesEditor").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-remove-size]");
-    if (!button) return;
-    currentProduct().sizes.splice(Number(button.dataset.removeSize), 1);
-    renderProductEditor();
-  });
-}
-
-async function unlockOwnerApp() {
-  try {
-    if (!ownerState.catalog) {
-      await loadCatalog();
+    const removeButton = event.target.closest("[data-remove-size]");
+    if (removeButton) {
+      selectedProduct().sizes.splice(Number(removeButton.dataset.removeSize), 1);
+      saveLiveDraft();
+      renderProductEditor();
     }
+  });
 
-    const accessCode = ownerElements().accessCode.value;
-    const codeHash = await window.CatalogClient.sha256(accessCode);
-
-    if (codeHash !== ownerState.catalog.security.ownerCodeHash) {
-      setMessage("Codigo incorrecto. Intenta otra vez.", true);
+  document.getElementById("slideEditorList").addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-remove-slide]");
+    if (removeButton) {
+      ownerCatalog().store.carouselSlides.splice(Number(removeButton.dataset.removeSlide), 1);
+      saveLiveDraft();
+      renderSlideEditor();
       return;
     }
 
-    ownerState.token = ownerElements().githubToken.value.trim();
-    ownerState.repo = ownerElements().repoName.value.trim();
-    ownerState.branch = ownerElements().branchName.value.trim();
-    ownerState.selectedProductId = ownerState.catalog.products[0].id;
+    const moveButton = event.target.closest("[data-slide-move]");
+    if (moveButton) {
+      moveSlide(Number(moveButton.dataset.slideIndex), moveButton.dataset.slideMove);
+    }
+  });
 
-    ownerElements().login.classList.remove("active");
-    ownerElements().dashboard.classList.add("active");
-    fillGeneralFields();
-    renderProductList();
-    renderProductEditor();
-    bindOwnerEvents();
-  } catch (error) {
-    setMessage("No se pudo abrir la consola: " + error.message, true);
-  }
+  document.getElementById("colorsEditor").addEventListener("change", async (event) => {
+    const uploadInput = event.target.closest("[data-color-upload]");
+    if (uploadInput) {
+      await handleColorUpload(uploadInput);
+      return;
+    }
+    saveWithoutRerender();
+  });
+
+  document.getElementById("colorsEditor").addEventListener("input", saveWithoutRerender);
+  document.getElementById("sizesEditor").addEventListener("input", saveWithoutRerender);
+  document.getElementById("sizesEditor").addEventListener("change", saveWithoutRerender);
+  document.getElementById("slideEditorList").addEventListener("input", saveWithoutRerender);
+  document.getElementById("slideEditorList").addEventListener("change", async (event) => {
+    const uploadInput = event.target.closest("[data-slide-upload]");
+    if (uploadInput) {
+      await handleSlideUpload(uploadInput);
+      return;
+    }
+    saveWithoutRerender();
+  });
+
+  bindGeneralAutosave();
 }
 
-document.getElementById("unlockButton").addEventListener("click", unlockOwnerApp);
+async function initOwner() {
+  const published = await fetchPublishedCatalog();
+  ownerState.catalog = window.CatalogClient.mergeCatalog(published);
+  ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
+  fillGeneralEditor();
+  renderOwnerList();
+  renderProductEditor();
+  renderSlideEditor();
+  bindOwnerEvents();
+}
+
+initOwner().catch((error) => {
+  console.error(error);
+  window.alert("No se pudo abrir la consola owner: " + error.message);
+});
