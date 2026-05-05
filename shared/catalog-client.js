@@ -24,6 +24,18 @@
     return `${pageRoot()}/api/live/catalog`;
   }
 
+  function isGithubPagesHost() {
+    return /github\.io$/i.test(window.location.hostname);
+  }
+
+  function localOnlyMessage() {
+    return "Los cambios se guardan solo en este equipo. Para que otros dispositivos los vean hace falta un backend en la nube activo.";
+  }
+
+  function sharedPublishUnavailableMessage() {
+    return "Esta pagina publicada en GitHub Pages no puede guardar cambios compartidos. Para que otros dispositivos vean los cambios necesitas publicar el owner con backend activo, por ejemplo Vercel + Supabase.";
+  }
+
   function getBroadcastChannel() {
     if (!("BroadcastChannel" in window)) {
       return null;
@@ -264,8 +276,8 @@
       return {
         catalog: mergeCatalog(baseCatalog),
         remote: false,
-        mode: "draft",
-        message: "Trabajando con catalogo local de respaldo.",
+        mode: isGithubPagesHost() ? "static-public" : "draft",
+        message: isGithubPagesHost() ? sharedPublishUnavailableMessage() : localOnlyMessage(),
         updatedAt: baseCatalog.updatedAt || null,
         fallback: true
       };
@@ -273,6 +285,10 @@
   }
 
   async function publishCatalog(catalog) {
+    if (isGithubPagesHost()) {
+      throw new Error(sharedPublishUnavailableMessage());
+    }
+
     const response = await fetch(liveApiPath(), {
       method: "POST",
       headers: {
@@ -351,6 +367,9 @@
     isFreshProduct,
     productBadge,
     liveApiPath,
+    isGithubPagesHost,
+    localOnlyMessage,
+    sharedPublishUnavailableMessage,
     fetchLiveCatalog,
     publishCatalog,
     loadStatusSnapshot,

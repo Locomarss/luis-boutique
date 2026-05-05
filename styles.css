@@ -1263,6 +1263,82 @@ select {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
+.owner-color-picker {
+  display: grid;
+  gap: 12px;
+}
+
+.owner-color-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-strong);
+  font-weight: 700;
+}
+
+.owner-color-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid rgba(20, 20, 20, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.owner-color-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+  gap: 10px;
+}
+
+.owner-color-preset {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(20, 20, 20, 0.14);
+}
+
+.owner-color-preset.active {
+  border-color: var(--text);
+  transform: translateY(-1px);
+}
+
+.owner-color-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-strong);
+  font-weight: 700;
+}
+
+.owner-color-custom input[type="color"] {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.owner-color-custom input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.owner-color-custom input[type="color"]::-webkit-color-swatch {
+  border: 1px solid rgba(20, 20, 20, 0.16);
+  border-radius: 12px;
+}
+
 .owner-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

@@ -8,6 +8,19 @@ const ownerState = {
   saving: false
 };
 
+const OWNER_COLOR_PRESETS = [
+  "#171717",
+  "#ffffff",
+  "#d51317",
+  "#1d4ed8",
+  "#059669",
+  "#f59e0b",
+  "#ec4899",
+  "#7c3aed",
+  "#8b5e3c",
+  "#9ca3af"
+];
+
 function ownerCatalog() {
   return ownerState.catalog;
 }
@@ -39,6 +52,13 @@ function calculateDiscount(product) {
   return Math.max(0, Math.round(((original - current) / original) * 100));
 }
 
+function normalizeHexColor(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "#cccccc";
+  const candidate = raw.startsWith("#") ? raw : `#${raw}`;
+  return /^#[0-9a-fA-F]{6}$/.test(candidate) ? candidate.toLowerCase() : "#cccccc";
+}
+
 function normalizeProduct(product) {
   const normalized = { ...product };
   normalized.colors = Array.isArray(normalized.colors) && normalized.colors.length ? normalized.colors : [];
@@ -53,7 +73,7 @@ function normalizeProduct(product) {
   normalized.colors = normalized.colors.map((color, index) => ({
     id: color.id || `color-${Date.now()}-${index}`,
     name: color.name || `Color ${index + 1}`,
-    hex: color.hex || "#cccccc",
+    hex: normalizeHexColor(color.hex),
     available: color.available !== false,
     stock: Number(color.stock || 0),
     images: Array.isArray(color.images) ? color.images.filter(Boolean) : [],
@@ -130,10 +150,7 @@ function renderSyncBanner(extraMessage) {
   const snapshot = window.CatalogClient.loadStatusSnapshot();
   const status = ownerState.syncMeta;
   const mode = status?.remote ? "Nube activa" : "Respaldo local";
-  const detail =
-    extraMessage ||
-    status?.message ||
-    (status?.remote ? "Los cambios se publican en la nube." : "Los cambios se guardan en un backend local simple.");
+  const detail = extraMessage || status?.message || (status?.remote ? "Los cambios se publican en la nube." : "Los cambios solo se guardan en este equipo.");
   const lastUpdate = snapshot?.savedAt || status?.updatedAt || ownerCatalog()?.updatedAt || null;
 
   target.innerHTML = `
@@ -350,7 +367,7 @@ function renderColorEditor(product) {
       (color, index) => `
         <div class="mini-card owner-color-card" data-color-index="${index}">
           <div class="owner-color-head">
-            <div class="owner-color-swatch" style="background:${escapeHtml(color.hex || "#cccccc")}"></div>
+            <div class="owner-color-swatch" style="background:${escapeHtml(normalizeHexColor(color.hex))}"></div>
             <div>
               <strong>${escapeHtml(color.name)}</strong>
               <p class="owner-help">Gestiona stock, disponibilidad y fotos de este color.</p>
@@ -358,7 +375,31 @@ function renderColorEditor(product) {
           </div>
           <div class="mini-row">
             <div class="field"><label>Nombre</label><input data-color-field="name" value="${escapeHtml(color.name)}" /></div>
-            <div class="field"><label>Hex</label><input data-color-field="hex" value="${escapeHtml(color.hex)}" /></div>
+            <div class="field">
+              <label>Paleta</label>
+              <div class="owner-color-picker">
+                <div class="owner-color-current">
+                  <span class="owner-color-dot" style="background:${escapeHtml(normalizeHexColor(color.hex))}"></span>
+                  <span>${escapeHtml(normalizeHexColor(color.hex))}</span>
+                </div>
+                <div class="owner-color-palette">
+                  ${OWNER_COLOR_PRESETS.map((preset) => `
+                    <button
+                      type="button"
+                      class="owner-color-preset ${normalizeHexColor(color.hex) === preset ? "active" : ""}"
+                      data-color-preset="${preset}"
+                      data-color-index="${index}"
+                      aria-label="Elegir color ${preset}"
+                      style="background:${preset}"
+                    ></button>
+                  `).join("")}
+                  <label class="owner-color-custom">
+                    <span>Personalizado</span>
+                    <input type="color" data-color-field="hex" value="${escapeHtml(normalizeHexColor(color.hex))}" />
+                  </label>
+                </div>
+              </div>
+            </div>
             <div class="field"><label>Stock</label><input type="number" min="0" data-color-field="stock" value="${color.stock}" /></div>
             <div class="field">
               <label>Disponible</label>
@@ -449,7 +490,7 @@ function syncColors() {
     const color = product.colors[index];
     if (!color) return;
     color.name = card.querySelector("[data-color-field='name']").value.trim() || `Color ${index + 1}`;
-    color.hex = card.querySelector("[data-color-field='hex']").value.trim() || "#cccccc";
+    color.hex = normalizeHexColor(card.querySelector("[data-color-field='hex']").value);
     color.stock = Number(card.querySelector("[data-color-field='stock']").value || 0);
     color.available = card.querySelector("[data-color-field='available']").value === "true";
     color.images = Array.isArray(color.images) ? color.images.filter(Boolean) : [];
@@ -711,6 +752,18 @@ function bindOwnerEvents() {
   });
 
   document.getElementById("colorsEditor").addEventListener("click", (event) => {
+    const presetButton = event.target.closest("[data-color-preset]");
+    if (presetButton) {
+      const card = presetButton.closest("[data-color-index]");
+      const input = card ? card.querySelector("[data-color-field='hex']") : null;
+      if (input) {
+        input.value = normalizeHexColor(presetButton.dataset.colorPreset);
+      }
+      saveDraftOnly();
+      renderProductEditor();
+      return;
+    }
+
     const removeButton = event.target.closest("[data-remove-color]");
     if (removeButton) {
       selectedProduct().colors.splice(Number(removeButton.dataset.removeColor), 1);
