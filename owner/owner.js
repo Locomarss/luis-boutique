@@ -1,6 +1,8 @@
 const ownerState = {
   catalog: null,
-  selectedProductId: null
+  selectedProductId: null,
+  syncMeta: null,
+  draftChanged: false
 };
 
 function ownerCatalog() {
@@ -12,16 +14,40 @@ function selectedProduct() {
 }
 
 async function fetchPublishedCatalog() {
-  const response = await fetch("../data/catalog.json?v=" + Date.now());
+  const response = await fetch(`../data/catalog.json?v=${Date.now()}`);
   if (!response.ok) {
     throw new Error("No se pudo cargar el catalogo publicado.");
   }
   return response.json();
 }
 
-function saveLiveDraft() {
+function markDraftChanged() {
+  ownerState.draftChanged = true;
+  renderSyncBanner();
+}
+
+function saveDraftOnly() {
+  syncAllEditors();
   ownerCatalog().updatedAt = new Date().toISOString();
   window.CatalogClient.saveDraft(ownerCatalog());
+  markDraftChanged();
+}
+
+function renderSyncBanner(extraMessage) {
+  const target = document.getElementById("ownerSyncStatus");
+  const snapshot = window.CatalogClient.loadStatusSnapshot();
+  const status = ownerState.syncMeta;
+  const mode = status?.remote ? "Nube activa" : "Respaldo local";
+  const detail = extraMessage || status?.message || (status?.remote ? "Los cambios se pueden publicar a Supabase." : "Todavia estas trabajando sin Supabase activa.");
+  const lastUpdate = snapshot?.savedAt || status?.updatedAt || ownerCatalog()?.updatedAt || null;
+
+  target.innerHTML = `
+    <div class="owner-status-row">
+      <span class="status-pill">${mode}</span>
+      <span class="owner-help">${lastUpdate ? `Ultimo movimiento ${window.CatalogClient.relativeTimeLabel(lastUpdate)}.` : "Aun no hay publicaciones remotas."}</span>
+    </div>
+    <p class="owner-help">${detail}</p>
+  `;
 }
 
 function renderOwnerList() {
@@ -40,6 +66,7 @@ function renderOwnerList() {
   target.onclick = (event) => {
     const button = event.target.closest("[data-product-id]");
     if (!button) return;
+    syncAllEditors();
     ownerState.selectedProductId = button.dataset.productId;
     renderOwnerList();
     renderProductEditor();
@@ -81,6 +108,7 @@ function syncProductEditor() {
   const category = ownerCatalog().categories.find((entry) => entry.id === categoryId);
 
   product.name = document.getElementById("productNameInput").value.trim();
+  product.slug = product.slug || product.id;
   product.category = categoryId;
   product.categoryLabel = category ? category.label : categoryId;
   product.price = Number(document.getElementById("productPriceInput").value || 0);
@@ -90,7 +118,7 @@ function syncProductEditor() {
   product.stock = Number(document.getElementById("productStockInput").value || 0);
   product.description = document.getElementById("productDescriptionInput").value.trim();
   product.createdAt = document.getElementById("productCreatedAtInput").value
-    ? new Date(document.getElementById("productCreatedAtInput").value + "T12:00:00").toISOString()
+    ? new Date(`${document.getElementById("productCreatedAtInput").value}T12:00:00`).toISOString()
     : product.createdAt;
   product.updatedAt = new Date().toISOString();
 }
@@ -112,11 +140,11 @@ function renderSlideEditor() {
           <div class="upload-line">
             <label class="ghost-btn" for="slideUpload-${index}">Subir imagen real</label>
             <input id="slideUpload-${index}" data-slide-upload="${index}" type="file" accept="image/*" hidden />
-            <span class="owner-help">Tambien puedes pegar un enlace directo arriba.</span>
+            <span class="owner-help">Puedes subir una imagen desde tu equipo o pegar un enlace directo.</span>
           </div>
           <div class="mini-actions">
-            <button class="small-btn" data-slide-move="up" data-slide-index="${index}">↑</button>
-            <button class="small-btn" data-slide-move="down" data-slide-index="${index}">↓</button>
+            <button class="small-btn" data-slide-move="up" data-slide-index="${index}">Subir</button>
+            <button class="small-btn" data-slide-move="down" data-slide-index="${index}">Bajar</button>
             <button class="ghost-btn" data-remove-slide="${index}">Quitar slide</button>
           </div>
         </div>
@@ -154,14 +182,14 @@ function renderColorEditor(product) {
                 <option value="false" ${!color.available ? "selected" : ""}>No</option>
               </select>
             </div>
-            <div class="field full"><label>Imagen 1</label><input data-color-image="0" value="${color.images[0] || ""}" /></div>
-            <div class="field full"><label>Imagen 2</label><input data-color-image="1" value="${color.images[1] || ""}" /></div>
-            <div class="field full"><label>Imagen 3</label><input data-color-image="2" value="${color.images[2] || ""}" /></div>
+            <div class="field full"><label>Imagen 1</label><input data-color-image="0" value="${(color.images || [])[0] || ""}" /></div>
+            <div class="field full"><label>Imagen 2</label><input data-color-image="1" value="${(color.images || [])[1] || ""}" /></div>
+            <div class="field full"><label>Imagen 3</label><input data-color-image="2" value="${(color.images || [])[2] || ""}" /></div>
           </div>
           <div class="upload-line">
             <label class="ghost-btn" for="colorUpload-${index}">Subir imagen real</label>
             <input id="colorUpload-${index}" data-color-upload="${index}" type="file" accept="image/*" multiple hidden />
-            <span class="owner-help">Puedes subir hasta 3 imagenes por color.</span>
+            <span class="owner-help">Sube hasta 3 fotos del mismo color.</span>
           </div>
           <div class="mini-actions">
             <button class="ghost-btn" data-remove-color="${index}">Quitar color</button>
@@ -257,17 +285,7 @@ function rerenderAll() {
   renderOwnerList();
   renderProductEditor();
   renderSlideEditor();
-}
-
-function storeAndBroadcast() {
-  syncAllEditors();
-  saveLiveDraft();
-  rerenderAll();
-}
-
-function saveWithoutRerender() {
-  syncAllEditors();
-  saveLiveDraft();
+  renderSyncBanner();
 }
 
 async function handleColorUpload(input) {
@@ -280,14 +298,16 @@ async function handleColorUpload(input) {
     color.images.push(await window.CatalogClient.fileToDataUrl(file, 1100));
   }
   color.coverImage = color.images[0] || color.coverImage || "";
-  storeAndBroadcast();
+  saveDraftOnly();
+  rerenderAll();
 }
 
 async function handleSlideUpload(input) {
   const slide = ownerCatalog().store.carouselSlides[Number(input.dataset.slideUpload)];
   if (!slide || !input.files[0]) return;
   slide.image = await window.CatalogClient.fileToDataUrl(input.files[0], 1400);
-  storeAndBroadcast();
+  saveDraftOnly();
+  rerenderAll();
 }
 
 function addProduct() {
@@ -295,7 +315,7 @@ function addProduct() {
   const product = window.CatalogClient.buildEmptyProduct(ownerCatalog());
   ownerCatalog().products.unshift(product);
   ownerState.selectedProductId = product.id;
-  saveLiveDraft();
+  saveDraftOnly();
   rerenderAll();
 }
 
@@ -308,7 +328,7 @@ function deleteProduct() {
   if (!confirmed) return;
   ownerCatalog().products = ownerCatalog().products.filter((product) => product.id !== ownerState.selectedProductId);
   ownerState.selectedProductId = ownerCatalog().products[0].id;
-  saveLiveDraft();
+  saveDraftOnly();
   rerenderAll();
 }
 
@@ -323,7 +343,7 @@ function addColor() {
     images: [],
     coverImage: ""
   });
-  saveLiveDraft();
+  saveDraftOnly();
   renderProductEditor();
 }
 
@@ -334,7 +354,7 @@ function addSize() {
     available: true,
     stock: 1
   });
-  saveLiveDraft();
+  saveDraftOnly();
   renderProductEditor();
 }
 
@@ -346,7 +366,7 @@ function addSlide() {
     text: "Edita este texto desde la consola owner.",
     image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&h=1500&q=80"
   });
-  saveLiveDraft();
+  saveDraftOnly();
   renderSlideEditor();
 }
 
@@ -357,7 +377,7 @@ function moveSlide(index, direction) {
   const temp = slides[index];
   slides[index] = slides[nextIndex];
   slides[nextIndex] = temp;
-  saveLiveDraft();
+  saveDraftOnly();
   renderSlideEditor();
 }
 
@@ -377,16 +397,43 @@ async function importDraft(file) {
   const parsed = JSON.parse(text);
   ownerState.catalog = parsed;
   ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
-  saveLiveDraft();
+  window.CatalogClient.saveDraft(ownerState.catalog);
+  ownerState.draftChanged = true;
   fillGeneralEditor();
   rerenderAll();
 }
 
-function clearDraft() {
-  const confirmed = window.confirm("Seguro que quieres borrar el borrador local y volver al catalogo publicado?");
+async function resetToPublished() {
+  const confirmed = window.confirm("Se perdera el borrador local actual. Quieres volver al catalogo publicado?");
   if (!confirmed) return;
   window.CatalogClient.clearDraft();
-  window.location.reload();
+  const base = await fetchPublishedCatalog();
+  const live = await window.CatalogClient.fetchLiveCatalog(base);
+  ownerState.catalog = live.catalog;
+  ownerState.syncMeta = live;
+  ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
+  ownerState.draftChanged = false;
+  fillGeneralEditor();
+  rerenderAll();
+}
+
+async function publishChanges() {
+  syncAllEditors();
+  const confirmed = window.confirm("Confirmas que quieres publicar estos cambios?");
+  if (!confirmed) return;
+
+  try {
+    const payload = await window.CatalogClient.publishCatalog(ownerCatalog());
+    ownerState.syncMeta = payload;
+    ownerState.catalog = payload.catalog || ownerCatalog();
+    ownerState.draftChanged = false;
+    window.CatalogClient.saveDraft(ownerState.catalog);
+    renderSyncBanner(payload.message || "Cambios publicados.");
+    window.alert(payload.message || "Cambios publicados.");
+  } catch (error) {
+    renderSyncBanner(error.message);
+    window.alert(`No se pudo publicar: ${error.message}`);
+  }
 }
 
 function bindGeneralAutosave() {
@@ -408,8 +455,8 @@ function bindGeneralAutosave() {
     "productDescriptionInput",
     "productCreatedAtInput"
   ].forEach((id) => {
-    document.getElementById(id).addEventListener("input", saveWithoutRerender);
-    document.getElementById(id).addEventListener("change", saveWithoutRerender);
+    document.getElementById(id).addEventListener("input", saveDraftOnly);
+    document.getElementById(id).addEventListener("change", saveDraftOnly);
   });
 }
 
@@ -419,12 +466,13 @@ function bindOwnerEvents() {
   document.getElementById("addColorButton").addEventListener("click", addColor);
   document.getElementById("addSizeButton").addEventListener("click", addSize);
   document.getElementById("addSlideButton").addEventListener("click", addSlide);
+  document.getElementById("publishButton").addEventListener("click", publishChanges);
   document.getElementById("saveDraftButton").addEventListener("click", () => {
-    storeAndBroadcast();
-    window.alert("Borrador guardado en este navegador.");
+    saveDraftOnly();
+    renderSyncBanner("Borrador guardado. La tienda del mismo navegador ya puede verlo sin recargar.");
   });
   document.getElementById("downloadDraftButton").addEventListener("click", downloadDraft);
-  document.getElementById("clearDraftButton").addEventListener("click", clearDraft);
+  document.getElementById("clearDraftButton").addEventListener("click", resetToPublished);
   document.getElementById("importDraftInput").addEventListener("change", async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -436,7 +484,7 @@ function bindOwnerEvents() {
     const removeButton = event.target.closest("[data-remove-color]");
     if (removeButton) {
       selectedProduct().colors.splice(Number(removeButton.dataset.removeColor), 1);
-      saveLiveDraft();
+      saveDraftOnly();
       renderProductEditor();
     }
   });
@@ -445,7 +493,7 @@ function bindOwnerEvents() {
     const removeButton = event.target.closest("[data-remove-size]");
     if (removeButton) {
       selectedProduct().sizes.splice(Number(removeButton.dataset.removeSize), 1);
-      saveLiveDraft();
+      saveDraftOnly();
       renderProductEditor();
     }
   });
@@ -454,7 +502,7 @@ function bindOwnerEvents() {
     const removeButton = event.target.closest("[data-remove-slide]");
     if (removeButton) {
       ownerCatalog().store.carouselSlides.splice(Number(removeButton.dataset.removeSlide), 1);
-      saveLiveDraft();
+      saveDraftOnly();
       renderSlideEditor();
       return;
     }
@@ -471,20 +519,20 @@ function bindOwnerEvents() {
       await handleColorUpload(uploadInput);
       return;
     }
-    saveWithoutRerender();
+    saveDraftOnly();
   });
 
-  document.getElementById("colorsEditor").addEventListener("input", saveWithoutRerender);
-  document.getElementById("sizesEditor").addEventListener("input", saveWithoutRerender);
-  document.getElementById("sizesEditor").addEventListener("change", saveWithoutRerender);
-  document.getElementById("slideEditorList").addEventListener("input", saveWithoutRerender);
+  document.getElementById("colorsEditor").addEventListener("input", saveDraftOnly);
+  document.getElementById("sizesEditor").addEventListener("input", saveDraftOnly);
+  document.getElementById("sizesEditor").addEventListener("change", saveDraftOnly);
+  document.getElementById("slideEditorList").addEventListener("input", saveDraftOnly);
   document.getElementById("slideEditorList").addEventListener("change", async (event) => {
     const uploadInput = event.target.closest("[data-slide-upload]");
     if (uploadInput) {
       await handleSlideUpload(uploadInput);
       return;
     }
-    saveWithoutRerender();
+    saveDraftOnly();
   });
 
   bindGeneralAutosave();
@@ -492,12 +540,15 @@ function bindOwnerEvents() {
 
 async function initOwner() {
   const published = await fetchPublishedCatalog();
-  ownerState.catalog = window.CatalogClient.mergeCatalog(published);
+  const live = await window.CatalogClient.fetchLiveCatalog(published);
+  ownerState.syncMeta = live;
+  ownerState.catalog = window.CatalogClient.loadDraft() || live.catalog;
   ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
   fillGeneralEditor();
   renderOwnerList();
   renderProductEditor();
   renderSlideEditor();
+  renderSyncBanner();
   bindOwnerEvents();
 }
 

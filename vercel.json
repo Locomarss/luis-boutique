@@ -2,6 +2,7 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/products/(.*)", "destination": "/api/product.js?id=$1" },
+    { "source": "/api/live/catalog", "destination": "/api/live/catalog.js" },
     { "source": "/api/catalog", "destination": "/api/catalog.js" },
     { "source": "/api/products", "destination": "/api/products.js" },
     { "source": "/api/categories", "destination": "/api/categories.js" },

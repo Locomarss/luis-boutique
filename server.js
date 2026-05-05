@@ -9,6 +9,7 @@ const {
   getCategories,
   summarizeCart,
 } = require("./lib/store");
+const { getLiveCatalog, saveLiveCatalog } = require("./lib/live-catalog");
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -87,6 +88,15 @@ async function handleApi(req, res, parsedUrl) {
     return true;
   }
 
+  if (req.method === "GET" && pathname === "/api/live/catalog") {
+    try {
+      sendJson(res, 200, await getLiveCatalog());
+    } catch (error) {
+      sendJson(res, 500, { message: error.message || "No se pudo cargar el catalogo live." });
+    }
+    return true;
+  }
+
   if (req.method === "GET" && pathname.startsWith("/api/products/")) {
     const id = pathname.replace("/api/products/", "");
     const product = getProductById(id);
@@ -112,6 +122,20 @@ async function handleApi(req, res, parsedUrl) {
       sendJson(res, 200, summary);
     } catch (error) {
       sendJson(res, 400, { message: "No se pudo procesar el carrito." });
+    }
+    return true;
+  }
+
+  if (req.method === "POST" && pathname === "/api/live/catalog") {
+    try {
+      const body = await parseBody(req);
+      if (!body.catalog) {
+        sendJson(res, 400, { message: "Falta el catalogo a publicar." });
+        return true;
+      }
+      sendJson(res, 200, await saveLiveCatalog(body.catalog));
+    } catch (error) {
+      sendJson(res, 500, { message: error.message || "No se pudo guardar el catalogo live." });
     }
     return true;
   }

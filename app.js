@@ -95,32 +95,32 @@ const translations = {
     navStore: "Boutik",
     navAbout: "Sou nou",
     cartEyebrow: "Panyen",
-    cartTitle: "Koman ou",
+    cartTitle: "Komand ou",
     totalLabel: "Total",
     checkoutButton: "Achte sou WhatsApp",
     menuEyebrow: "Menu",
     menuTitle: "Preferans",
-    themeTitle: "Mòd koulè",
-    themeText: "Chanje ant mòd klè ak mòd nwa.",
+    themeTitle: "Mod koule",
+    themeText: "Chanje ant mod kle ak mod nwa.",
     languageTitle: "Lang",
-    languageText: "Chwazi Panyòl, Anglè oswa Kreyòl.",
+    languageText: "Chwazi Panyol, Angle oswa Kreyol.",
     pageLinksTitle: "Paj",
     pageLinksText: "Ale nan boutik la oswa paj sou nou an.",
-    heroEyebrow: "Acha dirèk",
+    heroEyebrow: "Acha direk",
     heroActionProducts: "Gade nouvo pwodwi",
     heroActionAbout: "Ale sou nou",
-    carouselSectionEyebrow: "Karousèl",
-    carouselSectionTitle: "Koleksyon vedèt",
+    carouselSectionEyebrow: "Karousel",
+    carouselSectionTitle: "Koleksyon vedet",
     newEyebrow: "Nouvo pwodwi",
     newTitle: "Nouvo yo an premye.",
     newPill: "NOUVO",
-    catalogEyebrow: "Katalòg",
+    catalogEyebrow: "Katalag",
     catalogTitle: "Gade tout sa ki disponib.",
-    catalogText: "Filtre pa kategori, òf, oswa nouvo pwodwi san kite paj la.",
-    colorsLabel: "Koulè",
-    sizesLabel: "Gwosè",
+    catalogText: "Filtre pa kategori, ofri oswa nouvo pwodwi san kite paj la.",
+    colorsLabel: "Koule",
+    sizesLabel: "Gwose",
     addToCart: "Ajoute nan panyen",
-    termsLabel: "Tèm ak kondisyon",
+    termsLabel: "Tem ak kondisyon",
     aboutEyebrow: "Sou nou",
     goStoreButton: "Antre nan boutik la",
     cartEmpty: "Panyen ou vid. Ajoute pwodwi soti nan boutik la.",
@@ -132,7 +132,7 @@ const translations = {
     whatsappIntro: "Bonjou, mwen vle achte pwodwi sa yo:",
     whatsappTotal: "Total",
     whatsappImages: "Imaj",
-    stockSentence: "Disponib: {colorStock} nan koulè {colorName} ak {sizeStock} nan gwosè {sizeLabel}.",
+    stockSentence: "Disponib: {colorStock} nan koule {colorName} ak {sizeStock} nan gwose {sizeLabel}.",
     aboutBlock1Title: "Boutik la",
     aboutBlock2Title: "Kijan nou travay",
     aboutBlock3Title: "Acha rapid"
@@ -151,11 +151,17 @@ const appState = {
   selectedSizeLabel: null,
   selectedImageIndex: 0,
   slideIndex: 0,
-  slideTimer: null
+  slideTimer: null,
+  syncMeta: null,
+  pollTimer: null
 };
 
 function t(key) {
   return translations[appState.language][key] || translations.es[key] || key;
+}
+
+function format(template, values) {
+  return Object.keys(values).reduce((result, key) => result.replace(`{${key}}`, values[key]), template);
 }
 
 function setStoredLanguage(language) {
@@ -172,7 +178,7 @@ function applyTheme() {
   document.documentElement.classList.toggle("dark", theme === "dark");
   const button = document.getElementById("themeToggle");
   if (button) {
-    button.textContent = theme === "dark" ? "☀️" : "🌙";
+    button.textContent = theme === "dark" ? "Sun" : "Moon";
   }
 }
 
@@ -182,18 +188,18 @@ function toggleTheme() {
   applyTheme();
 }
 
-function format(template, values) {
-  return Object.keys(values).reduce((result, key) => result.replace(`{${key}}`, values[key]), template);
-}
-
-async function fetchCatalog() {
-  const response = await fetch("./data/catalog.json?v=" + Date.now());
+async function fetchBaseCatalog() {
+  const response = await fetch(`./data/catalog.json?v=${Date.now()}`);
   if (!response.ok) {
     throw new Error("No se pudo cargar el catalogo principal.");
   }
-  const catalog = await response.json();
-  appState.baseCatalog = catalog;
-  appState.catalog = window.CatalogClient.mergeCatalog(catalog);
+  appState.baseCatalog = await response.json();
+}
+
+async function fetchActiveCatalog() {
+  const live = await window.CatalogClient.fetchLiveCatalog(appState.baseCatalog);
+  appState.syncMeta = live;
+  appState.catalog = window.CatalogClient.loadDraft() || live.catalog;
 }
 
 function applyTranslations() {
@@ -207,6 +213,7 @@ function applyTranslations() {
 function renderLanguageButtons() {
   const target = document.getElementById("languageRow");
   if (!target) return;
+
   const buttons = [
     { id: "es", label: "Espanol" },
     { id: "en", label: "English" },
@@ -226,8 +233,9 @@ function renderLanguageButtons() {
 }
 
 function getAvailableProductImage(product) {
-  const color = product.colors.find((entry) => (entry.images || []).length) || product.colors[0];
-  return (color && (color.images[0] || color.coverImage)) || "./assets/luis-boutique-logo.jpeg";
+  const colors = product.colors || [];
+  const color = colors.find((entry) => (entry.images || []).length) || colors[0];
+  return (color && ((color.images || [])[0] || color.coverImage)) || "./assets/luis-boutique-logo.jpeg";
 }
 
 function isVisibleNew(product) {
@@ -248,18 +256,20 @@ function filteredProducts() {
 
 function renderHero() {
   if (appState.page !== "store") return;
-  const heroTitle = document.getElementById("heroTitle");
-  const heroText = document.getElementById("heroText");
-  const heroVisual = document.getElementById("heroVisual");
-  heroTitle.textContent = appState.catalog.store.heroTitle;
-  heroText.textContent = appState.catalog.store.heroText;
-  const newest = appState.catalog.products.find((product) => isVisibleNew(product)) || appState.catalog.products[0];
-  heroVisual.src = getAvailableProductImage(newest);
+  document.getElementById("heroTitle").textContent = appState.catalog.store.heroTitle;
+  document.getElementById("heroText").textContent = appState.catalog.store.heroText;
+  const newest = (appState.catalog.products || []).find((product) => isVisibleNew(product)) || appState.catalog.products[0];
+  document.getElementById("heroVisual").src = newest ? getAvailableProductImage(newest) : "./assets/luis-boutique-logo.jpeg";
+}
+
+function currentSlideList() {
+  return appState.catalog.store.carouselSlides || [];
 }
 
 function renderCarousel() {
   if (appState.page !== "store") return;
-  const slides = appState.catalog.store.carouselSlides || [];
+
+  const slides = currentSlideList();
   const slidesTarget = document.getElementById("carouselSlides");
   const dotsTarget = document.getElementById("carouselDots");
 
@@ -269,45 +279,51 @@ function renderCarousel() {
     return;
   }
 
-  appState.slideIndex = ((appState.slideIndex % slides.length) + slides.length) % slides.length;
-  const current = slides[appState.slideIndex];
+  appState.slideIndex = Math.min(appState.slideIndex, slides.length - 1);
 
   slidesTarget.innerHTML = slides
-    .map((slide, index) => `<div class="carousel-slide ${index === appState.slideIndex ? "active" : ""}"><img src="${slide.image}" alt="${slide.title}" /></div>`)
+    .map(
+      (slide, index) => `
+        <article class="carousel-slide ${index === appState.slideIndex ? "active" : ""}">
+          <img src="${slide.image}" alt="${slide.title}" />
+        </article>
+      `
+    )
     .join("");
 
   dotsTarget.innerHTML = slides
-    .map((_, index) => `<button class="slide-dot ${index === appState.slideIndex ? "active" : ""}" data-slide-index="${index}" aria-label="Slide ${index + 1}"></button>`)
+    .map(
+      (slide, index) =>
+        `<button class="slide-dot ${index === appState.slideIndex ? "active" : ""}" data-slide-index="${index}" aria-label="${slide.title}"></button>`
+    )
     .join("");
 
-  document.getElementById("carouselEyebrow").textContent = current.eyebrow;
-  document.getElementById("carouselTitle").textContent = current.title;
-  document.getElementById("carouselText").textContent = current.text;
+  const activeSlide = slides[appState.slideIndex];
+  document.getElementById("carouselEyebrow").textContent = activeSlide.eyebrow;
+  document.getElementById("carouselTitle").textContent = activeSlide.title;
+  document.getElementById("carouselText").textContent = activeSlide.text;
+}
 
-  dotsTarget.onclick = (event) => {
-    const dot = event.target.closest("[data-slide-index]");
-    if (!dot) return;
-    appState.slideIndex = Number(dot.dataset.slideIndex);
-    renderCarousel();
-    resetCarouselTimer();
-  };
+function moveSlide(direction) {
+  const slides = currentSlideList();
+  if (!slides.length) return;
+  appState.slideIndex = (appState.slideIndex + direction + slides.length) % slides.length;
+  renderCarousel();
+  resetCarouselTimer();
 }
 
 function resetCarouselTimer() {
-  if (appState.slideTimer) {
-    window.clearInterval(appState.slideTimer);
-  }
-  if (appState.page !== "store") return;
+  window.clearInterval(appState.slideTimer);
+  if (appState.page !== "store" || !currentSlideList().length) return;
   appState.slideTimer = window.setInterval(() => {
-    appState.slideIndex += 1;
-    renderCarousel();
-  }, 5200);
+    moveSlide(1);
+  }, 5000);
 }
 
 function renderNewProducts() {
   if (appState.page !== "store") return;
   const target = document.getElementById("newGrid");
-  const items = appState.catalog.products.filter((product) => isVisibleNew(product)).slice(0, 6);
+  const items = (appState.catalog.products || []).filter((product) => isVisibleNew(product)).slice(0, 6);
   target.innerHTML = items.map(renderProductCard).join("");
 }
 
@@ -315,14 +331,14 @@ function filterLabel(filter) {
   if (filter === "all") return t("filtersAll");
   if (filter === "new") return t("filtersNew");
   if (filter === "offers") return t("filtersOffers");
-  const category = appState.catalog.categories.find((entry) => entry.id === filter);
+  const category = (appState.catalog.categories || []).find((entry) => entry.id === filter);
   return category ? category.label : filter;
 }
 
 function renderFilters() {
   if (appState.page !== "store") return;
   const target = document.getElementById("filterRow");
-  const filters = ["all", "new", "offers"].concat(appState.catalog.categories.map((entry) => entry.id));
+  const filters = ["all", "new", "offers"].concat((appState.catalog.categories || []).map((entry) => entry.id));
   target.innerHTML = filters
     .map((filter) => `<button class="filter-chip ${filter === appState.filter ? "active" : ""}" data-filter="${filter}">${filterLabel(filter)}</button>`)
     .join("");
@@ -337,22 +353,19 @@ function renderFilters() {
 }
 
 function renderProductCard(product) {
+  const badge = displayBadge(product);
   return `
     <button class="product-card" data-product-id="${product.id}">
       <figure>
-        <img src="${getAvailableProductImage(product)}" alt="${product.name}" loading="lazy" />
-        <span class="badge-tag">${displayBadge(product)}</span>
+        <img src="${getAvailableProductImage(product)}" alt="${product.name}" />
+        <span class="status-pill card-pill">${badge}</span>
       </figure>
-      <div class="product-meta">
-        <div>
-          <h3 class="product-name">${product.name}</h3>
-          <div class="product-cat">${product.categoryLabel}</div>
-          <div class="stock-note">${t("stockText")}: ${product.stock}</div>
+      <div class="product-copy">
+        <div class="product-copy-row">
+          <strong>${product.name}</strong>
+          <span>${window.CatalogClient.formatMoney(product.price)}</span>
         </div>
-        <div class="price-stack">
-          <strong class="price-now">${window.CatalogClient.formatMoney(product.price)}</strong>
-          ${Number(product.originalPrice || 0) > Number(product.price || 0) ? `<span class="price-old">${window.CatalogClient.formatMoney(product.originalPrice)}</span>` : ""}
-        </div>
+        <p>${product.categoryLabel}</p>
       </div>
     </button>
   `;
@@ -361,59 +374,41 @@ function renderProductCard(product) {
 function renderProducts() {
   if (appState.page !== "store") return;
   const target = document.getElementById("productsGrid");
-  target.innerHTML = filteredProducts().map(renderProductCard).join("");
+  const items = filteredProducts();
+  target.innerHTML = items.length ? items.map(renderProductCard).join("") : `<div class="empty-state">No hay productos visibles para este filtro ahora mismo.</div>`;
 }
 
 function renderCart() {
   const summary = window.CatalogClient.summarizeCart(appState.catalog, appState.cart);
-  const count = summary.items.reduce((sum, item) => sum + item.quantity, 0);
-  document.getElementById("cartCount").textContent = String(count);
+  document.getElementById("cartCount").textContent = String(summary.items.reduce((sum, item) => sum + item.quantity, 0));
   document.getElementById("cartTotal").textContent = summary.totalLabel;
 
   const target = document.getElementById("cartList");
   if (!summary.items.length) {
-    target.innerHTML = `<div class="empty-card editor-card"><p class="panel-note">${t("cartEmpty")}</p></div>`;
+    target.innerHTML = `<p class="panel-note">${t("cartEmpty")}</p>`;
     return;
   }
 
   target.innerHTML = summary.items
     .map(
       (item) => `
-        <article class="cart-card">
-          <img src="${item.image}" alt="${item.name}" />
-          <div>
-            <h3>${item.name}</h3>
-            <p>${item.colorName} · ${item.sizeLabel}</p>
-            <p>${item.priceLabel}</p>
-            <div class="cart-controls">
-              <div class="qty-group">
-                <button class="qty-btn" data-cart-action="minus" data-key="${item.key}">-</button>
-                <strong>${item.quantity}</strong>
-                <button class="qty-btn" data-cart-action="plus" data-key="${item.key}">+</button>
-              </div>
-              <button class="remove-btn" data-cart-action="remove" data-key="${item.key}">🗑</button>
+        <article class="cart-item">
+          <img src="${item.image || "./assets/luis-boutique-logo.jpeg"}" alt="${item.name}" />
+          <div class="cart-item-copy">
+            <strong>${item.name}</strong>
+            <span>${item.colorName} / ${item.sizeLabel}</span>
+            <span>${item.priceLabel}</span>
+            <div class="cart-qty-row">
+              <button class="qty-btn" data-cart-change="-1" data-cart-key="${item.key}">-</button>
+              <span>${item.quantity}</span>
+              <button class="qty-btn" data-cart-change="1" data-cart-key="${item.key}">+</button>
+              <button class="ghost-btn ghost-btn-small" data-cart-remove="${item.key}">Eliminar</button>
             </div>
           </div>
         </article>
       `
     )
     .join("");
-
-  target.onclick = (event) => {
-    const button = event.target.closest("[data-cart-action]");
-    if (!button) return;
-    const item = appState.cart.find((entry) => entry.key === button.dataset.key);
-    if (!item) return;
-
-    if (button.dataset.cartAction === "plus") item.quantity += 1;
-    if (button.dataset.cartAction === "minus") item.quantity -= 1;
-    if (button.dataset.cartAction === "remove" || item.quantity <= 0) {
-      appState.cart = appState.cart.filter((entry) => entry.key !== button.dataset.key);
-    }
-
-    setStoredCart();
-    renderCart();
-  };
 }
 
 function openPanel(name) {
@@ -431,78 +426,107 @@ function selectedProduct() {
   return window.CatalogClient.productById(appState.catalog, appState.selectedProductId);
 }
 
-function selectedColor() {
-  return window.CatalogClient.colorById(selectedProduct(), appState.selectedColorId);
+function currentColor(product) {
+  return window.CatalogClient.colorById(product, appState.selectedColorId);
 }
 
-function selectedSize() {
-  return window.CatalogClient.sizeByLabel(selectedProduct(), appState.selectedSizeLabel);
+function currentSize(product) {
+  return window.CatalogClient.sizeByLabel(product, appState.selectedSizeLabel);
 }
 
 function openProduct(productId) {
   const product = window.CatalogClient.productById(appState.catalog, productId);
   if (!product) return;
+
   appState.selectedProductId = product.id;
-  appState.selectedColorId = product.colors[0]?.id || null;
-  appState.selectedSizeLabel = product.sizes[0]?.label || null;
+  appState.selectedColorId = (product.colors || [])[0]?.id || null;
+  appState.selectedSizeLabel = (product.sizes || [])[0]?.label || null;
   appState.selectedImageIndex = 0;
   renderProductModal();
   document.getElementById("productModal").classList.add("open");
-  document.getElementById("panelBackdrop").classList.add("visible");
 }
 
 function closeProduct() {
   document.getElementById("productModal").classList.remove("open");
-  if (!document.getElementById("cartPanel").classList.contains("open") && !document.getElementById("settingsPanel").classList.contains("open")) {
-    document.getElementById("panelBackdrop").classList.remove("visible");
-  }
+}
+
+function renderOptionChip({ label, active, disabled, color }, attributes) {
+  const style = color ? `style="--chip:${color}"` : "";
+  const disabledClass = disabled ? "sold-out" : "";
+  return `<button class="color-chip ${active ? "active" : ""} ${disabledClass}" ${style} ${attributes}>${label}</button>`;
 }
 
 function renderProductModal() {
   const product = selectedProduct();
   if (!product) return;
-  const color = selectedColor();
-  const size = selectedSize();
+
+  const color = currentColor(product);
+  const size = currentSize(product);
+  const images = (color && color.images && color.images.length ? color.images : [color?.coverImage].filter(Boolean)) || [];
 
   document.getElementById("modalCategory").textContent = product.categoryLabel;
   document.getElementById("modalName").textContent = product.name;
   document.getElementById("modalPrice").textContent = window.CatalogClient.formatMoney(product.price);
-  document.getElementById("modalPriceOld").textContent = Number(product.originalPrice || 0) > Number(product.price || 0) ? window.CatalogClient.formatMoney(product.originalPrice) : "";
+  document.getElementById("modalPriceOld").textContent = product.originalPrice ? window.CatalogClient.formatMoney(product.originalPrice) : "";
   document.getElementById("modalDescription").textContent = product.description;
-  document.getElementById("modalMainPhoto").src = color.images[appState.selectedImageIndex] || color.images[0] || "./assets/luis-boutique-logo.jpeg";
+  document.getElementById("modalMainPhoto").src = images[appState.selectedImageIndex] || getAvailableProductImage(product);
 
-  document.getElementById("modalThumbList").innerHTML = (color.images || [])
-    .map((image, index) => `<button class="thumb-btn ${index === appState.selectedImageIndex ? "active" : ""}" data-thumb-index="${index}"><img src="${image}" alt="${product.name} ${index + 1}" /></button>`)
-    .join("");
-
-  document.getElementById("modalColorRow").innerHTML = product.colors
+  document.getElementById("modalThumbList").innerHTML = images
     .map(
-      (entry) => `<button class="color-chip ${entry.id === color.id ? "active" : ""} ${entry.available ? "" : "sold-out"}" data-color-id="${entry.id}" style="--chip:${entry.hex}" title="${entry.name}" aria-label="${entry.name}"></button>`
+      (image, index) => `
+        <button class="thumb-btn ${index === appState.selectedImageIndex ? "active" : ""}" data-thumb-index="${index}">
+          <img src="${image}" alt="${product.name} ${index + 1}" />
+        </button>
+      `
     )
     .join("");
 
-  document.getElementById("modalSizeRow").innerHTML = product.sizes
-    .map(
-      (entry) => `<button class="size-chip ${entry.label === size.label ? "active" : ""} ${entry.available ? "" : "sold-out"}" data-size-label="${entry.label}">${entry.label}</button>`
+  document.getElementById("modalColorRow").innerHTML = (product.colors || [])
+    .map((entry) =>
+      renderOptionChip(
+        {
+          label: entry.name,
+          active: entry.id === appState.selectedColorId,
+          disabled: !entry.available || Number(entry.stock || 0) <= 0,
+          color: entry.hex
+        },
+        `data-color-id="${entry.id}"`
+      )
+    )
+    .join("");
+
+  document.getElementById("modalSizeRow").innerHTML = (product.sizes || [])
+    .map((entry) =>
+      renderOptionChip(
+        {
+          label: entry.label,
+          active: entry.label === appState.selectedSizeLabel,
+          disabled: !entry.available || Number(entry.stock || 0) <= 0
+        },
+        `data-size-label="${entry.label}"`
+      )
     )
     .join("");
 
   document.getElementById("modalStockNote").textContent = format(t("stockSentence"), {
-    colorStock: Math.max(0, Number(color.stock || 0)),
-    colorName: color.name,
-    sizeStock: Math.max(0, Number(size.stock || 0)),
-    sizeLabel: size.label
+    colorStock: color ? color.stock : 0,
+    colorName: color ? color.name : "-",
+    sizeStock: size ? size.stock : 0,
+    sizeLabel: size ? size.label : "-"
   });
 }
 
-function addSelectedProductToCart() {
+function addToCart() {
   const product = selectedProduct();
-  const color = selectedColor();
-  const size = selectedSize();
-  if (!product || !color.available || !size.available) return;
+  if (!product) return;
 
-  const key = `${product.id}::${color.id}::${size.label}`;
+  const color = currentColor(product);
+  const size = currentSize(product);
+  if (!color || !size) return;
+
+  const key = `${product.id}:${color.id}:${size.label}`;
   const existing = appState.cart.find((entry) => entry.key === key);
+
   if (existing) {
     existing.quantity += 1;
   } else {
@@ -518,65 +542,21 @@ function addSelectedProductToCart() {
   setStoredCart();
   renderCart();
   closeProduct();
+  openPanel("cart");
 }
 
-function bindStorePage() {
-  document.getElementById("productsGrid").onclick = (event) => {
-    const card = event.target.closest("[data-product-id]");
-    if (card) openProduct(card.dataset.productId);
-  };
-
-  document.getElementById("newGrid").onclick = (event) => {
-    const card = event.target.closest("[data-product-id]");
-    if (card) openProduct(card.dataset.productId);
-  };
-
-  document.getElementById("carouselPrev").onclick = () => {
-    appState.slideIndex -= 1;
-    renderCarousel();
-    resetCarouselTimer();
-  };
-
-  document.getElementById("carouselNext").onclick = () => {
-    appState.slideIndex += 1;
-    renderCarousel();
-    resetCarouselTimer();
-  };
+function changeCartQuantity(key, delta) {
+  const item = appState.cart.find((entry) => entry.key === key);
+  if (!item) return;
+  item.quantity = Math.max(1, Number(item.quantity || 1) + delta);
+  setStoredCart();
+  renderCart();
 }
 
-function bindModal() {
-  document.getElementById("modalClose")?.addEventListener("click", closeProduct);
-  document.getElementById("productModal")?.addEventListener("click", (event) => {
-    if (event.target.id === "productModal") closeProduct();
-  });
-
-  document.getElementById("modalThumbList")?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-thumb-index]");
-    if (!button) return;
-    appState.selectedImageIndex = Number(button.dataset.thumbIndex);
-    renderProductModal();
-  });
-
-  document.getElementById("modalColorRow")?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-color-id]");
-    if (!button) return;
-    const color = selectedProduct().colors.find((entry) => entry.id === button.dataset.colorId);
-    if (!color || !color.available) return;
-    appState.selectedColorId = button.dataset.colorId;
-    appState.selectedImageIndex = 0;
-    renderProductModal();
-  });
-
-  document.getElementById("modalSizeRow")?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-size-label]");
-    if (!button) return;
-    const size = selectedProduct().sizes.find((entry) => entry.label === button.dataset.sizeLabel);
-    if (!size || !size.available) return;
-    appState.selectedSizeLabel = button.dataset.sizeLabel;
-    renderProductModal();
-  });
-
-  document.getElementById("addToCartButton")?.addEventListener("click", addSelectedProductToCart);
+function removeCartItem(key) {
+  appState.cart = appState.cart.filter((entry) => entry.key !== key);
+  setStoredCart();
+  renderCart();
 }
 
 function renderAboutPage() {
@@ -587,43 +567,46 @@ function renderAboutPage() {
 
   const paragraphs = appState.catalog.about.paragraphs || [];
   const highlights = appState.catalog.about.highlights || [];
-  const blocks = [
-    { title: t("aboutBlock1Title"), text: paragraphs[0] || appState.catalog.about.intro },
-    { title: t("aboutBlock2Title"), text: paragraphs[1] || appState.catalog.store.heroText },
-    { title: t("aboutBlock3Title"), text: highlights.map((entry) => `${entry.label}: ${entry.value}`).join(" · ") }
-  ];
 
-  document.getElementById("aboutGrid").innerHTML = blocks
-    .map(
-      (block) => `
-        <article class="about-block reveal visible">
-          <span class="eyebrow">${block.title}</span>
-          <p class="about-text">${block.text}</p>
-        </article>
-      `
-    )
-    .join("");
+  document.getElementById("aboutGrid").innerHTML = `
+    <article class="content-card">
+      <span class="eyebrow">${t("aboutBlock1Title")}</span>
+      <p class="panel-note">${paragraphs[0] || ""}</p>
+    </article>
+    <article class="content-card">
+      <span class="eyebrow">${t("aboutBlock2Title")}</span>
+      <p class="panel-note">${paragraphs[1] || ""}</p>
+    </article>
+    <article class="content-card">
+      <span class="eyebrow">${t("aboutBlock3Title")}</span>
+      <div class="highlight-stack">
+        ${highlights.map((item) => `<div class="highlight-row"><strong>${item.label}</strong><span>${item.value}</span></div>`).join("")}
+      </div>
+    </article>
+  `;
 
   const video = document.getElementById("aboutVideo");
-  const source = document.getElementById("aboutVideoSource");
-  video.poster = appState.catalog.about.video.poster;
-  source.src = appState.catalog.about.video.src;
-  video.load();
+  const videoSource = document.getElementById("aboutVideoSource");
+  if (video && videoSource) {
+    video.poster = appState.catalog.about.video.poster || "";
+    videoSource.src = appState.catalog.about.video.src || "";
+    video.load();
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          video.play().catch(() => {});
-        } else {
-          video.pause();
-        }
-      });
-    },
-    { threshold: 0.5 }
-  );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.55 }
+    );
 
-  observer.observe(video);
+    observer.observe(video);
+  }
 }
 
 function renderCheckoutAction() {
@@ -634,13 +617,15 @@ function renderCheckoutAction() {
     const lines = [
       t("whatsappIntro"),
       ...summary.items.flatMap((item) => [
-        `- ${item.name} | ${item.colorName} | ${item.sizeLabel} | x${item.quantity} | ${item.subtotalLabel}`,
-        `${t("whatsappImages")}: ${item.image}`
-      ]),
+        `- ${item.name} / ${item.colorName} / ${item.sizeLabel} x${item.quantity} (${item.subtotalLabel})`,
+        item.image ? `${t("whatsappImages")}: ${item.image}` : null
+      ].filter(Boolean)),
       `${t("whatsappTotal")}: ${summary.totalLabel}`
     ];
 
-    window.open(`https://wa.me/${appState.catalog.store.whatsappNumber}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
+    const whatsappNumber = appState.catalog.store.whatsappNumber || "18099077400";
+    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(lines.join("\n"))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 }
 
@@ -674,18 +659,30 @@ function listenForOwnerDrafts() {
         renderPage();
       }
       if (event.data?.type === "catalog:clear") {
-        appState.catalog = window.CatalogClient.clone(appState.baseCatalog);
-        renderPage();
+        refreshRemoteCatalog(true);
       }
     };
   }
 
   window.addEventListener("storage", (event) => {
-    if (event.key === "lb-owner-draft-v3") {
+    if (event.key === window.CatalogClient.DRAFT_KEY) {
       appState.catalog = window.CatalogClient.mergeCatalog(appState.baseCatalog);
       renderPage();
     }
   });
+}
+
+async function refreshRemoteCatalog(forceRender) {
+  const live = await window.CatalogClient.fetchLiveCatalog(appState.baseCatalog);
+  appState.syncMeta = live;
+  if (window.CatalogClient.loadDraft()) {
+    appState.catalog = window.CatalogClient.loadDraft();
+  } else {
+    appState.catalog = live.catalog;
+  }
+  if (forceRender !== false) {
+    renderPage();
+  }
 }
 
 function bindCommonEvents() {
@@ -705,33 +702,113 @@ function bindCommonEvents() {
   window.addEventListener("scroll", () => {
     const header = document.getElementById("siteHeader");
     if (!header) return;
-    if (window.scrollY > lastScroll && window.scrollY > 120) {
-      header.classList.add("hidden");
+    const current = window.scrollY;
+    if (current > lastScroll && current > 120) {
+      header.classList.add("header-hidden");
     } else {
-      header.classList.remove("hidden");
+      header.classList.remove("header-hidden");
     }
-    lastScroll = window.scrollY;
+    lastScroll = current;
   });
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-        }
-      });
-    },
-    { threshold: 0.15 }
-  );
+  document.getElementById("cartList")?.addEventListener("click", (event) => {
+    const changeButton = event.target.closest("[data-cart-change]");
+    if (changeButton) {
+      changeCartQuantity(changeButton.dataset.cartKey, Number(changeButton.dataset.cartChange));
+      return;
+    }
 
-  document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+    const removeButton = event.target.closest("[data-cart-remove]");
+    if (removeButton) {
+      removeCartItem(removeButton.dataset.cartRemove);
+    }
+  });
+}
+
+function bindStorePage() {
+  document.getElementById("productsGrid").addEventListener("click", (event) => {
+    const productButton = event.target.closest("[data-product-id]");
+    if (productButton) {
+      openProduct(productButton.dataset.productId);
+    }
+  });
+
+  document.getElementById("newGrid").addEventListener("click", (event) => {
+    const productButton = event.target.closest("[data-product-id]");
+    if (productButton) {
+      openProduct(productButton.dataset.productId);
+    }
+  });
+
+  document.getElementById("carouselPrev").addEventListener("click", () => moveSlide(-1));
+  document.getElementById("carouselNext").addEventListener("click", () => moveSlide(1));
+  document.getElementById("carouselDots").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-slide-index]");
+    if (!button) return;
+    appState.slideIndex = Number(button.dataset.slideIndex);
+    renderCarousel();
+    resetCarouselTimer();
+  });
+}
+
+function bindModal() {
+  document.getElementById("modalClose")?.addEventListener("click", closeProduct);
+  document.getElementById("addToCartButton")?.addEventListener("click", addToCart);
+
+  document.getElementById("productModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "productModal") {
+      closeProduct();
+      return;
+    }
+
+    const thumbButton = event.target.closest("[data-thumb-index]");
+    if (thumbButton) {
+      appState.selectedImageIndex = Number(thumbButton.dataset.thumbIndex);
+      renderProductModal();
+      return;
+    }
+
+    const colorButton = event.target.closest("[data-color-id]");
+    if (colorButton) {
+      const product = selectedProduct();
+      const color = window.CatalogClient.colorById(product, colorButton.dataset.colorId);
+      if (!color || !color.available || Number(color.stock || 0) <= 0) return;
+      appState.selectedColorId = color.id;
+      appState.selectedImageIndex = 0;
+      renderProductModal();
+      return;
+    }
+
+    const sizeButton = event.target.closest("[data-size-label]");
+    if (sizeButton) {
+      const product = selectedProduct();
+      const size = window.CatalogClient.sizeByLabel(product, sizeButton.dataset.sizeLabel);
+      if (!size || !size.available || Number(size.stock || 0) <= 0) return;
+      appState.selectedSizeLabel = size.label;
+      renderProductModal();
+    }
+  });
+}
+
+function startRemotePolling() {
+  if (appState.pollTimer) {
+    window.clearInterval(appState.pollTimer);
+  }
+
+  appState.pollTimer = window.CatalogClient.startPolling(async () => {
+    if (window.CatalogClient.loadDraft()) {
+      return;
+    }
+    await refreshRemoteCatalog(true);
+  }, 15000);
 }
 
 async function init() {
   applyTheme();
   bindCommonEvents();
   bindModal();
-  await fetchCatalog();
+  await fetchBaseCatalog();
+  await fetchActiveCatalog();
   renderCheckoutAction();
   listenForOwnerDrafts();
 
@@ -739,9 +816,11 @@ async function init() {
     bindStorePage();
   }
 
+  startRemotePolling();
   renderPage();
 }
 
 init().catch((error) => {
   console.error(error);
+  window.alert("No se pudo abrir LUIS BOUTIQUE: " + error.message);
 });

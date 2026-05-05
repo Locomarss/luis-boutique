@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LUIS BOUTIQUE | Owner</title>
-    <meta name="description" content="Consola sencilla para duenos de LUIS BOUTIQUE. Edita productos, carrusel, imagenes reales y cambios en vivo en este navegador." />
+    <meta name="description" content="Consola simple para editar productos, carrusel e imagenes de LUIS BOUTIQUE sin login, con publicacion a la nube cuando el backend esta conectado." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -15,9 +15,11 @@
       <section class="owner-panel owner-intro">
         <span class="eyebrow">LUIS BOUTIQUE OWNER</span>
         <h1 class="section-title" style="font-size:2.4rem">Editor simple para duenos</h1>
-        <p class="owner-help">Todo aqui es mas facil: al cambiar textos, productos o imagenes se guarda como borrador y la pagina del comprador se actualiza en este mismo navegador casi en tiempo real, incluso sin recargar. Como esta version esta montada en GitHub Pages, los cambios viven en este navegador hasta que quieras subir una nueva version del codigo.</p>
+        <p class="owner-help">Aqui puedes editar productos, precios, stock, tallas, colores, carrusel e imagenes reales. Primero se guarda un borrador para previsualizar, y luego puedes publicarlo cuando confirmes.</p>
+        <div class="owner-status-box" id="ownerSyncStatus"></div>
         <div class="owner-toolbar">
           <button class="action-btn" id="saveDraftButton">Guardar borrador</button>
+          <button class="action-btn" id="publishButton">Confirmar y publicar</button>
           <button class="ghost-btn" id="downloadDraftButton">Descargar catalogo JSON</button>
           <label class="ghost-btn" for="importDraftInput">Importar catalogo JSON</label>
           <input id="importDraftInput" type="file" accept="application/json" hidden />
