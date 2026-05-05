@@ -2,7 +2,10 @@ const ownerState = {
   catalog: null,
   selectedProductId: null,
   syncMeta: null,
-  draftChanged: false
+  draftChanged: false,
+  searchTerm: "",
+  categoryFilter: "all",
+  saving: false
 };
 
 function ownerCatalog() {
@@ -36,6 +39,58 @@ function calculateDiscount(product) {
   return Math.max(0, Math.round(((original - current) / original) * 100));
 }
 
+function normalizeProduct(product) {
+  const normalized = { ...product };
+  normalized.colors = Array.isArray(normalized.colors) && normalized.colors.length ? normalized.colors : [];
+  normalized.sizes = Array.isArray(normalized.sizes) && normalized.sizes.length ? normalized.sizes : [];
+  normalized.description = normalized.description || "";
+  normalized.badgeText = normalized.badgeText || "";
+  normalized.stock = Number(normalized.stock || 0);
+  normalized.price = Number(normalized.price || 0);
+  normalized.originalPrice = Number(normalized.originalPrice || 0);
+  normalized.featured = normalized.featured === true;
+
+  normalized.colors = normalized.colors.map((color, index) => ({
+    id: color.id || `color-${Date.now()}-${index}`,
+    name: color.name || `Color ${index + 1}`,
+    hex: color.hex || "#cccccc",
+    available: color.available !== false,
+    stock: Number(color.stock || 0),
+    images: Array.isArray(color.images) ? color.images.filter(Boolean) : [],
+    coverImage: color.coverImage || (Array.isArray(color.images) ? color.images[0] || "" : "")
+  }));
+
+  normalized.sizes = normalized.sizes.map((size) => ({
+    label: size.label || "Nueva",
+    available: size.available !== false,
+    stock: Number(size.stock || 0)
+  }));
+
+  return normalized;
+}
+
+function normalizeCatalog(catalog) {
+  if (!catalog) {
+    return null;
+  }
+  const next = window.CatalogClient.clone(catalog);
+  next.products = (next.products || []).map(normalizeProduct);
+  return next;
+}
+
+function catalogTimestamp(catalog) {
+  const value = catalog?.updatedAt || catalog?.products?.[0]?.updatedAt || 0;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function chooseStartingCatalog(liveCatalog, draftCatalog) {
+  if (!draftCatalog) {
+    return liveCatalog;
+  }
+  return catalogTimestamp(draftCatalog) > catalogTimestamp(liveCatalog) ? draftCatalog : liveCatalog;
+}
+
 async function fetchPublishedCatalog() {
   const response = await fetch(`../data/catalog.json?v=${Date.now()}`);
   if (!response.ok) {
@@ -49,11 +104,25 @@ function markDraftChanged() {
   renderSyncBanner();
 }
 
+function filteredOwnerProducts() {
+  const term = ownerState.searchTerm.trim().toLowerCase();
+  return ownerCatalog().products.filter((product) => {
+    const byCategory = ownerState.categoryFilter === "all" || product.category === ownerState.categoryFilter;
+    if (!byCategory) return false;
+    if (!term) return true;
+    return [product.name, product.categoryLabel, product.description]
+      .join(" ")
+      .toLowerCase()
+      .includes(term);
+  });
+}
+
 function saveDraftOnly() {
   syncAllEditors();
   ownerCatalog().updatedAt = new Date().toISOString();
   window.CatalogClient.saveDraft(ownerCatalog());
   markDraftChanged();
+  renderSelectionMeta();
 }
 
 function renderSyncBanner(extraMessage) {
@@ -62,21 +131,52 @@ function renderSyncBanner(extraMessage) {
   const status = ownerState.syncMeta;
   const mode = status?.remote ? "Nube activa" : "Respaldo local";
   const detail =
-    extraMessage || status?.message || (status?.remote ? "Los cambios se pueden publicar a Supabase." : "Estas trabajando con respaldo local seguro.");
+    extraMessage ||
+    status?.message ||
+    (status?.remote ? "Los cambios se publican en la nube." : "Los cambios se guardan en un backend local simple.");
   const lastUpdate = snapshot?.savedAt || status?.updatedAt || ownerCatalog()?.updatedAt || null;
 
   target.innerHTML = `
     <div class="owner-status-row">
       <span class="status-pill">${mode}</span>
-      <span class="owner-help">${lastUpdate ? `Ultimo movimiento ${window.CatalogClient.relativeTimeLabel(lastUpdate)}.` : "Aun no hay publicaciones registradas."}</span>
+      <span class="owner-help">${lastUpdate ? `Ultimo movimiento ${window.CatalogClient.relativeTimeLabel(lastUpdate)}.` : "Todavia no hay guardados."}</span>
+      ${ownerState.saving ? '<span class="status-pill">Guardando...</span>' : ""}
     </div>
     <p class="owner-help">${detail}</p>
   `;
 }
 
+function renderSelectionMeta() {
+  const visible = filteredOwnerProducts();
+  const total = ownerCatalog().products.length;
+  const target = document.getElementById("ownerSelectionMeta");
+  target.textContent = `${visible.length} producto${visible.length === 1 ? "" : "s"} visibles de ${total}. ${
+    ownerState.selectedProductId ? "Haz clic en uno para editarlo." : "Crea tu primer producto."
+  }`;
+}
+
+function renderCategoryFilter() {
+  const target = document.getElementById("ownerCategoryFilter");
+  const options = [
+    { id: "all", label: "Todas las categorias" },
+    ...(ownerCatalog().categories || []).map((category) => ({ id: category.id, label: category.label }))
+  ];
+
+  target.innerHTML = options
+    .map((option) => `<option value="${option.id}" ${option.id === ownerState.categoryFilter ? "selected" : ""}>${option.label}</option>`)
+    .join("");
+}
+
 function renderOwnerList() {
   const target = document.getElementById("ownerProductList");
-  target.innerHTML = ownerCatalog().products
+  const products = filteredOwnerProducts();
+  if (!products.length) {
+    target.innerHTML = `<div class="empty-state">No hay productos que coincidan con la busqueda. Prueba otra categoria o crea uno nuevo.</div>`;
+    renderSelectionMeta();
+    return;
+  }
+
+  target.innerHTML = products
     .map((product) => {
       const categoryLabel = escapeHtml(product.categoryLabel || product.category || "Sin categoria");
       return `
@@ -93,13 +193,14 @@ function renderOwnerList() {
     })
     .join("");
 
+  renderSelectionMeta();
+
   target.onclick = (event) => {
     const button = event.target.closest("[data-product-id]");
     if (!button) return;
     syncAllEditors();
     ownerState.selectedProductId = button.dataset.productId;
-    renderOwnerList();
-    renderProductEditor();
+    rerenderAll();
   };
 }
 
@@ -136,7 +237,7 @@ function syncProductEditor() {
   const categoryId = document.getElementById("productCategoryInput").value;
   const category = ownerCatalog().categories.find((entry) => entry.id === categoryId);
 
-  product.name = document.getElementById("productNameInput").value.trim();
+  product.name = document.getElementById("productNameInput").value.trim() || "Producto sin nombre";
   product.slug = product.slug || product.id;
   product.category = categoryId;
   product.categoryLabel = category ? category.label : categoryId;
@@ -156,7 +257,7 @@ function syncProductEditor() {
   product.description = document.getElementById("productDescriptionInput").value.trim();
   product.createdAt = document.getElementById("productCreatedAtInput").value
     ? new Date(`${document.getElementById("productCreatedAtInput").value}T12:00:00`).toISOString()
-    : product.createdAt;
+    : product.createdAt || new Date().toISOString();
   product.isNewArrival = product.status === "new" || product.featured === true;
   product.updatedAt = new Date().toISOString();
 }
@@ -167,7 +268,7 @@ function renderProductPreview() {
   if (!product || !target) return;
 
   const discount = calculateDiscount(product);
-  const images = (product.colors || []).flatMap((color) => color.images || []).filter(Boolean).slice(0, 4);
+  const images = (product.colors || []).flatMap((color) => color.images || []).filter(Boolean).slice(0, 6);
   const totalColorStock = (product.colors || []).reduce((sum, color) => sum + Number(color.stock || 0), 0);
   const totalSizeStock = (product.sizes || []).reduce((sum, size) => sum + Number(size.stock || 0), 0);
 
@@ -193,7 +294,7 @@ function renderProductPreview() {
         <div class="owner-summary-card"><strong>${totalSizeStock}</strong><span>Stock por tallas</span></div>
       </div>
       <div class="owner-preview-thumbs">
-        ${images.length ? images.map((image, index) => `<img src="${image}" alt="${escapeHtml(product.name)} ${index + 1}" />`).join("") : `<span class="owner-help">Sube imagenes para ver la galeria aqui.</span>`}
+        ${images.length ? images.map((image, index) => `<img src="${image}" alt="${escapeHtml(product.name)} ${index + 1}" />`).join("") : `<span class="owner-help">Sube imagenes desde galeria para verlas aqui.</span>`}
       </div>
     </div>
   `;
@@ -208,15 +309,17 @@ function renderSlideEditor() {
       (slide, index) => `
         <div class="mini-card" data-slide-index="${index}">
           <div class="mini-row">
-            <div class="field"><label>Eyebrow</label><input data-slide-field="eyebrow" value="${slide.eyebrow}" /></div>
-            <div class="field"><label>Titulo</label><input data-slide-field="title" value="${slide.title}" /></div>
-            <div class="field full"><label>Texto</label><textarea data-slide-field="text">${slide.text}</textarea></div>
-            <div class="field full"><label>Imagen</label><input data-slide-field="image" value="${slide.image}" /></div>
+            <div class="field"><label>Eyebrow</label><input data-slide-field="eyebrow" value="${escapeHtml(slide.eyebrow)}" /></div>
+            <div class="field"><label>Titulo</label><input data-slide-field="title" value="${escapeHtml(slide.title)}" /></div>
+            <div class="field full"><label>Texto</label><textarea data-slide-field="text">${escapeHtml(slide.text)}</textarea></div>
+          </div>
+          <div class="owner-gallery owner-slide-gallery">
+            ${slide.image ? `<img src="${slide.image}" alt="${escapeHtml(slide.title)}" />` : `<div class="owner-gallery-empty">Sube una imagen para este slide.</div>`}
           </div>
           <div class="upload-line">
-            <label class="ghost-btn" for="slideUpload-${index}">Subir imagen real</label>
+            <label class="ghost-btn" for="slideUpload-${index}">Subir imagen desde galeria</label>
             <input id="slideUpload-${index}" data-slide-upload="${index}" type="file" accept="image/*" hidden />
-            <span class="owner-help">Puedes subir una imagen desde tu equipo o pegar un enlace directo.</span>
+            <span class="owner-help">No necesitas pegar links. Selecciona una foto desde tu dispositivo.</span>
           </div>
           <div class="mini-actions">
             <button class="small-btn" data-slide-move="up" data-slide-index="${index}">Subir</button>
@@ -230,14 +333,13 @@ function renderSlideEditor() {
 }
 
 function syncSlides() {
-  document.querySelectorAll("[data-slide-index]").forEach((card) => {
+  document.querySelectorAll("#slideEditorList .mini-card[data-slide-index]").forEach((card) => {
     const index = Number(card.dataset.slideIndex);
     const slide = ownerCatalog().store.carouselSlides[index];
     if (!slide) return;
     slide.eyebrow = card.querySelector("[data-slide-field='eyebrow']").value.trim();
     slide.title = card.querySelector("[data-slide-field='title']").value.trim();
     slide.text = card.querySelector("[data-slide-field='text']").value.trim();
-    slide.image = card.querySelector("[data-slide-field='image']").value.trim();
   });
 }
 
@@ -246,10 +348,17 @@ function renderColorEditor(product) {
   target.innerHTML = product.colors
     .map(
       (color, index) => `
-        <div class="mini-card" data-color-index="${index}">
+        <div class="mini-card owner-color-card" data-color-index="${index}">
+          <div class="owner-color-head">
+            <div class="owner-color-swatch" style="background:${escapeHtml(color.hex || "#cccccc")}"></div>
+            <div>
+              <strong>${escapeHtml(color.name)}</strong>
+              <p class="owner-help">Gestiona stock, disponibilidad y fotos de este color.</p>
+            </div>
+          </div>
           <div class="mini-row">
-            <div class="field"><label>Nombre</label><input data-color-field="name" value="${color.name}" /></div>
-            <div class="field"><label>Hex</label><input data-color-field="hex" value="${color.hex}" /></div>
+            <div class="field"><label>Nombre</label><input data-color-field="name" value="${escapeHtml(color.name)}" /></div>
+            <div class="field"><label>Hex</label><input data-color-field="hex" value="${escapeHtml(color.hex)}" /></div>
             <div class="field"><label>Stock</label><input type="number" min="0" data-color-field="stock" value="${color.stock}" /></div>
             <div class="field">
               <label>Disponible</label>
@@ -258,16 +367,26 @@ function renderColorEditor(product) {
                 <option value="false" ${!color.available ? "selected" : ""}>No</option>
               </select>
             </div>
-            <div class="field full"><label>Imagen 1</label><input data-color-image="0" value="${(color.images || [])[0] || ""}" /></div>
-            <div class="field full"><label>Imagen 2</label><input data-color-image="1" value="${(color.images || [])[1] || ""}" /></div>
-            <div class="field full"><label>Imagen 3</label><input data-color-image="2" value="${(color.images || [])[2] || ""}" /></div>
+          </div>
+          <div class="owner-gallery">
+            ${(color.images || [])
+              .map(
+                (image, imageIndex) => `
+                  <div class="owner-gallery-item">
+                    <img src="${image}" alt="${escapeHtml(color.name)} ${imageIndex + 1}" />
+                    <button class="ghost-btn ghost-btn-small" data-remove-color-image="${index}" data-image-index="${imageIndex}">Quitar</button>
+                  </div>
+                `
+              )
+              .join("") || `<div class="owner-gallery-empty">Todavia no hay fotos para este color.</div>`}
           </div>
           <div class="upload-line">
-            <label class="ghost-btn" for="colorUpload-${index}">Subir imagen real</label>
+            <label class="ghost-btn" for="colorUpload-${index}">Subir fotos desde galeria</label>
             <input id="colorUpload-${index}" data-color-upload="${index}" type="file" accept="image/*" multiple hidden />
-            <span class="owner-help">Sube hasta 3 fotos del mismo color.</span>
+            <span class="owner-help">Puedes subir varias fotos para que aparezcan en la galeria lateral del cliente.</span>
           </div>
           <div class="mini-actions">
+            <button class="ghost-btn" data-clear-color-images="${index}">Borrar fotos</button>
             <button class="ghost-btn" data-remove-color="${index}">Quitar color</button>
           </div>
         </div>
@@ -281,9 +400,9 @@ function renderSizeEditor(product) {
   target.innerHTML = product.sizes
     .map(
       (size, index) => `
-        <div class="mini-card" data-size-index="${index}">
+        <div class="mini-card owner-size-card" data-size-index="${index}">
           <div class="mini-row">
-            <div class="field"><label>Talla</label><input data-size-field="label" value="${size.label}" /></div>
+            <div class="field"><label>Talla</label><input data-size-field="label" value="${escapeHtml(size.label)}" /></div>
             <div class="field"><label>Stock</label><input type="number" min="0" data-size-field="stock" value="${size.stock}" /></div>
             <div class="field full">
               <label>Disponible</label>
@@ -329,14 +448,12 @@ function syncColors() {
     const index = Number(card.dataset.colorIndex);
     const color = product.colors[index];
     if (!color) return;
-    color.name = card.querySelector("[data-color-field='name']").value.trim();
-    color.hex = card.querySelector("[data-color-field='hex']").value.trim();
+    color.name = card.querySelector("[data-color-field='name']").value.trim() || `Color ${index + 1}`;
+    color.hex = card.querySelector("[data-color-field='hex']").value.trim() || "#cccccc";
     color.stock = Number(card.querySelector("[data-color-field='stock']").value || 0);
     color.available = card.querySelector("[data-color-field='available']").value === "true";
-    color.images = [0, 1, 2]
-      .map((slot) => card.querySelector(`[data-color-image='${slot}']`).value.trim())
-      .filter(Boolean);
-    color.coverImage = color.images[0] || color.coverImage || "";
+    color.images = Array.isArray(color.images) ? color.images.filter(Boolean) : [];
+    color.coverImage = color.images[0] || "";
   });
 }
 
@@ -346,7 +463,7 @@ function syncSizes() {
     const index = Number(card.dataset.sizeIndex);
     const size = product.sizes[index];
     if (!size) return;
-    size.label = card.querySelector("[data-size-field='label']").value.trim();
+    size.label = card.querySelector("[data-size-field='label']").value.trim() || "Nueva";
     size.stock = Number(card.querySelector("[data-size-field='stock']").value || 0);
     size.available = card.querySelector("[data-size-field='available']").value === "true";
   });
@@ -362,6 +479,7 @@ function syncAllEditors() {
 }
 
 function rerenderAll() {
+  renderCategoryFilter();
   renderOwnerList();
   renderProductEditor();
   renderSlideEditor();
@@ -372,12 +490,12 @@ async function handleColorUpload(input) {
   const product = selectedProduct();
   const color = product.colors[Number(input.dataset.colorUpload)];
   if (!color || !input.files.length) return;
-  const files = Array.from(input.files).slice(0, 3);
-  color.images = [];
+  const files = Array.from(input.files).slice(0, 8);
   for (const file of files) {
-    color.images.push(await window.CatalogClient.fileToDataUrl(file, 1100));
+    color.images.push(await window.CatalogClient.fileToDataUrl(file, 1400));
   }
-  color.coverImage = color.images[0] || color.coverImage || "";
+  color.images = color.images.slice(0, 10);
+  color.coverImage = color.images[0] || "";
   saveDraftOnly();
   rerenderAll();
 }
@@ -385,16 +503,33 @@ async function handleColorUpload(input) {
 async function handleSlideUpload(input) {
   const slide = ownerCatalog().store.carouselSlides[Number(input.dataset.slideUpload)];
   if (!slide || !input.files[0]) return;
-  slide.image = await window.CatalogClient.fileToDataUrl(input.files[0], 1400);
+  slide.image = await window.CatalogClient.fileToDataUrl(input.files[0], 1600);
   saveDraftOnly();
   rerenderAll();
 }
 
 function addProduct() {
   syncAllEditors();
-  const product = window.CatalogClient.buildEmptyProduct(ownerCatalog());
+  const product = normalizeProduct(window.CatalogClient.buildEmptyProduct(ownerCatalog()));
   ownerCatalog().products.unshift(product);
   ownerState.selectedProductId = product.id;
+  saveDraftOnly();
+  rerenderAll();
+}
+
+function duplicateProduct() {
+  const base = selectedProduct();
+  if (!base) return;
+  syncAllEditors();
+  const copy = window.CatalogClient.clone(base);
+  copy.id = window.CatalogClient.makeProductId(`${base.name}-copia`);
+  copy.slug = copy.id;
+  copy.name = `${base.name} copia`;
+  copy.createdAt = new Date().toISOString();
+  copy.updatedAt = new Date().toISOString();
+  copy.colors = (copy.colors || []).map((color, index) => ({ ...color, id: `${color.id || "color"}-${Date.now()}-${index}` }));
+  ownerCatalog().products.unshift(copy);
+  ownerState.selectedProductId = copy.id;
   saveDraftOnly();
   rerenderAll();
 }
@@ -404,9 +539,10 @@ function deleteProduct() {
     window.alert("Debes dejar al menos un producto en el catalogo.");
     return;
   }
-  const confirmed = window.confirm("Seguro que quieres eliminar este producto?");
+  const product = selectedProduct();
+  const confirmed = window.confirm(`Seguro que quieres eliminar "${product.name}"?`);
   if (!confirmed) return;
-  ownerCatalog().products = ownerCatalog().products.filter((product) => product.id !== ownerState.selectedProductId);
+  ownerCatalog().products = ownerCatalog().products.filter((entry) => entry.id !== ownerState.selectedProductId);
   ownerState.selectedProductId = ownerCatalog().products[0].id;
   saveDraftOnly();
   rerenderAll();
@@ -444,7 +580,7 @@ function addSlide() {
     eyebrow: "COLECCION DESTACADA",
     title: "Nuevo slide",
     text: "Edita este texto desde la consola owner.",
-    image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&h=1500&q=80"
+    image: ""
   });
   saveDraftOnly();
   renderSlideEditor();
@@ -474,7 +610,7 @@ function downloadDraft() {
 
 async function importDraft(file) {
   const text = await file.text();
-  const parsed = JSON.parse(text);
+  const parsed = normalizeCatalog(JSON.parse(text));
   ownerState.catalog = parsed;
   ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
   window.CatalogClient.saveDraft(ownerState.catalog);
@@ -489,7 +625,7 @@ async function resetToPublished() {
   window.CatalogClient.clearDraft();
   const base = await fetchPublishedCatalog();
   const live = await window.CatalogClient.fetchLiveCatalog(base);
-  ownerState.catalog = live.catalog;
+  ownerState.catalog = normalizeCatalog(live.catalog);
   ownerState.syncMeta = live;
   ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
   ownerState.draftChanged = false;
@@ -499,20 +635,23 @@ async function resetToPublished() {
 
 async function publishChanges() {
   syncAllEditors();
-  const confirmed = window.confirm("Confirmas que quieres publicar estos cambios?");
-  if (!confirmed) return;
+  ownerState.saving = true;
+  renderSyncBanner("Guardando cambios en el catalogo...");
 
   try {
     const payload = await window.CatalogClient.publishCatalog(ownerCatalog());
     ownerState.syncMeta = payload;
-    ownerState.catalog = payload.catalog || ownerCatalog();
+    ownerState.catalog = normalizeCatalog(payload.catalog || ownerCatalog());
     ownerState.draftChanged = false;
+    ownerState.saving = false;
     window.CatalogClient.saveDraft(ownerState.catalog);
-    renderSyncBanner(payload.message || "Cambios publicados.");
-    window.alert(payload.message || "Cambios publicados.");
+    renderSyncBanner(payload.message || "Cambios guardados y publicados.");
+    rerenderAll();
+    window.alert(payload.message || "Cambios guardados y publicados.");
   } catch (error) {
+    ownerState.saving = false;
     renderSyncBanner(error.message);
-    window.alert(`No se pudo publicar: ${error.message}`);
+    window.alert(`No se pudo guardar: ${error.message}`);
   }
 }
 
@@ -544,6 +683,7 @@ function bindGeneralAutosave() {
 
 function bindOwnerEvents() {
   document.getElementById("addProductButton").addEventListener("click", addProduct);
+  document.getElementById("duplicateProductButton").addEventListener("click", duplicateProduct);
   document.getElementById("deleteProductButton").addEventListener("click", deleteProduct);
   document.getElementById("addColorButton").addEventListener("click", addColor);
   document.getElementById("addSizeButton").addEventListener("click", addSize);
@@ -551,10 +691,18 @@ function bindOwnerEvents() {
   document.getElementById("publishButton").addEventListener("click", publishChanges);
   document.getElementById("saveDraftButton").addEventListener("click", () => {
     saveDraftOnly();
-    renderSyncBanner("Borrador guardado. La vista previa del mismo navegador ya puede verlo sin recargar.");
+    renderSyncBanner("Borrador local guardado. Si quieres que la tienda cambie, pulsa Guardar y publicar.");
   });
   document.getElementById("downloadDraftButton").addEventListener("click", downloadDraft);
   document.getElementById("clearDraftButton").addEventListener("click", resetToPublished);
+  document.getElementById("ownerSearchInput").addEventListener("input", (event) => {
+    ownerState.searchTerm = event.target.value;
+    renderOwnerList();
+  });
+  document.getElementById("ownerCategoryFilter").addEventListener("change", (event) => {
+    ownerState.categoryFilter = event.target.value;
+    renderOwnerList();
+  });
   document.getElementById("importDraftInput").addEventListener("change", async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -566,6 +714,30 @@ function bindOwnerEvents() {
     const removeButton = event.target.closest("[data-remove-color]");
     if (removeButton) {
       selectedProduct().colors.splice(Number(removeButton.dataset.removeColor), 1);
+      saveDraftOnly();
+      renderProductEditor();
+      return;
+    }
+
+    const clearImagesButton = event.target.closest("[data-clear-color-images]");
+    if (clearImagesButton) {
+      const color = selectedProduct().colors[Number(clearImagesButton.dataset.clearColorImages)];
+      if (color) {
+        color.images = [];
+        color.coverImage = "";
+      }
+      saveDraftOnly();
+      renderProductEditor();
+      return;
+    }
+
+    const removeImageButton = event.target.closest("[data-remove-color-image]");
+    if (removeImageButton) {
+      const color = selectedProduct().colors[Number(removeImageButton.dataset.removeColorImage)];
+      if (color) {
+        color.images.splice(Number(removeImageButton.dataset.imageIndex), 1);
+        color.coverImage = color.images[0] || "";
+      }
       saveDraftOnly();
       renderProductEditor();
     }
@@ -599,6 +771,7 @@ function bindOwnerEvents() {
     const uploadInput = event.target.closest("[data-color-upload]");
     if (uploadInput) {
       await handleColorUpload(uploadInput);
+      event.target.value = "";
       return;
     }
     saveDraftOnly();
@@ -612,6 +785,7 @@ function bindOwnerEvents() {
     const uploadInput = event.target.closest("[data-slide-upload]");
     if (uploadInput) {
       await handleSlideUpload(uploadInput);
+      event.target.value = "";
       return;
     }
     saveDraftOnly();
@@ -624,13 +798,11 @@ async function initOwner() {
   const published = await fetchPublishedCatalog();
   const live = await window.CatalogClient.fetchLiveCatalog(published);
   ownerState.syncMeta = live;
-  ownerState.catalog = window.CatalogClient.loadDraft() || live.catalog;
+  const draftCatalog = normalizeCatalog(window.CatalogClient.loadDraft() || null);
+  ownerState.catalog = chooseStartingCatalog(normalizeCatalog(live.catalog), draftCatalog);
   ownerState.selectedProductId = ownerState.catalog.products[0]?.id || null;
   fillGeneralEditor();
-  renderOwnerList();
-  renderProductEditor();
-  renderSlideEditor();
-  renderSyncBanner();
+  rerenderAll();
   bindOwnerEvents();
 }
 

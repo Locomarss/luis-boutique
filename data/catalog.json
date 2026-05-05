@@ -107,7 +107,7 @@
       "category": "zapatos",
       "categoryLabel": "Zapatos",
       "description": "Tenis premium para elevar outfits urbanos con presencia limpia y energ?a deportiva.",
-      "price": 3890,
+      "price": 3907,
       "originalPrice": 4440,
       "status": "new",
       "badgeText": "NEW DROP",
@@ -188,7 +188,7 @@
         }
       ],
       "createdAt": "2026-05-03T16:00:00.000Z",
-      "updatedAt": "2026-05-04T16:00:00.000Z"
+      "updatedAt": "2026-05-05T04:00:27.931Z"
     },
     {
       "id": "zapatos-2",
@@ -6201,5 +6201,5 @@
       "updatedAt": "2026-04-04T16:00:00.000Z"
     }
   ],
-  "updatedAt": "2026-05-04T16:00:00.000Z"
+  "updatedAt": "2026-05-05T04:08:00.000Z"
 }

@@ -14,12 +14,12 @@
     <main class="owner-shell">
       <section class="owner-panel owner-intro">
         <span class="eyebrow">LUIS BOUTIQUE OWNER</span>
-        <h1 class="section-title" style="font-size:2.4rem">Editor simple para duenos</h1>
-        <p class="owner-help">Aqui puedes editar productos, precios, stock, tallas, colores, carrusel e imagenes reales. Primero se guarda un borrador para previsualizar, y luego puedes publicarlo cuando confirmes.</p>
+        <h1 class="section-title" style="font-size:2.4rem">Panel del dueño</h1>
+        <p class="owner-help">Edita productos, sube fotos desde la galería, cambia precios, stock y etiquetas, y publica los cambios sin pasos técnicos. La tienda debe sentirse viva y este panel te ayudará a manejarla fácil.</p>
         <div class="owner-status-box" id="ownerSyncStatus"></div>
         <div class="owner-toolbar">
-          <button class="action-btn" id="saveDraftButton">Guardar borrador</button>
-          <button class="action-btn" id="publishButton">Confirmar y publicar</button>
+          <button class="action-btn" id="publishButton">Guardar y publicar</button>
+          <button class="ghost-btn" id="saveDraftButton">Guardar borrador local</button>
           <button class="ghost-btn" id="downloadDraftButton">Descargar catalogo JSON</button>
           <label class="ghost-btn" for="importDraftInput">Importar catalogo JSON</label>
           <input id="importDraftInput" type="file" accept="application/json" hidden />
@@ -33,18 +33,115 @@
         <aside class="owner-panel">
           <div class="section-head" style="margin-bottom:0">
             <div>
-              <span class="eyebrow">Lista</span>
+              <span class="eyebrow">Catalogo</span>
               <h2 class="panel-title">Productos</h2>
+            </div>
+          </div>
+          <div class="owner-filters">
+            <div class="field">
+              <label for="ownerSearchInput">Buscar producto</label>
+              <input id="ownerSearchInput" type="text" placeholder="Ej. zapatos, polo, rojo..." />
+            </div>
+            <div class="field">
+              <label for="ownerCategoryFilter">Filtrar categoria</label>
+              <select id="ownerCategoryFilter"></select>
             </div>
           </div>
           <div class="owner-toolbar" style="margin-top:14px">
             <button class="action-btn" id="addProductButton">Agregar producto</button>
+            <button class="ghost-btn" id="duplicateProductButton">Duplicar producto</button>
             <button class="ghost-btn" id="deleteProductButton">Eliminar producto</button>
           </div>
+          <p class="owner-help" id="ownerSelectionMeta" style="margin-top:12px"></p>
           <div class="owner-list" id="ownerProductList"></div>
         </aside>
 
         <section class="editor-stack">
+          <article class="owner-panel">
+            <div class="section-head" style="margin-bottom:0">
+              <div>
+                <span class="eyebrow">Producto seleccionado</span>
+                <h2 class="panel-title">Editor visual de producto</h2>
+              </div>
+            </div>
+            <p class="owner-help" style="margin-top:12px">Haz clic en un producto de la lista. Verás su imagen y debajo los campos editables bien separados para no confundirte.</p>
+            <div class="owner-preview-card" id="ownerProductPreview"></div>
+            <div class="field-grid owner-product-grid" style="margin-top:18px">
+              <div class="field">
+                <label for="productNameInput">Nombre del producto</label>
+                <input id="productNameInput" type="text" />
+              </div>
+              <div class="field">
+                <label for="productCategoryInput">Categoria</label>
+                <select id="productCategoryInput"></select>
+              </div>
+              <div class="field">
+                <label for="productPriceInput">Precio actual RD$</label>
+                <input id="productPriceInput" type="number" min="0" />
+              </div>
+              <div class="field">
+                <label for="productOriginalPriceInput">Precio original RD$</label>
+                <input id="productOriginalPriceInput" type="number" min="0" />
+              </div>
+              <div class="field">
+                <label for="productDiscountInput">Rebaja %</label>
+                <input id="productDiscountInput" type="number" min="0" max="99" />
+                <span class="field-help">Si escribes una rebaja y ya existe precio original, se recalcula el precio actual.</span>
+              </div>
+              <div class="field">
+                <label for="productStatusInput">Etiqueta visual</label>
+                <select id="productStatusInput">
+                  <option value="standard">Normal</option>
+                  <option value="new">Nuevo</option>
+                  <option value="sale">Rebaja</option>
+                  <option value="offer">Oferta</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="productBadgeInput">Texto del badge</label>
+                <input id="productBadgeInput" type="text" placeholder="Ej. NUEVO DROP" />
+              </div>
+              <div class="field">
+                <label for="productStockInput">Stock general</label>
+                <input id="productStockInput" type="number" min="0" />
+              </div>
+              <div class="field">
+                <label for="productCreatedAtInput">Fecha de lanzamiento</label>
+                <input id="productCreatedAtInput" type="date" />
+              </div>
+              <div class="field">
+                <label for="productFeaturedInput">Mostrar entre nuevos</label>
+                <select id="productFeaturedInput">
+                  <option value="false">No</option>
+                  <option value="true">Si</option>
+                </select>
+              </div>
+              <div class="field full">
+                <label for="productDescriptionInput">Descripcion</label>
+                <textarea id="productDescriptionInput" placeholder="Describe rapido lo que el cliente necesita saber."></textarea>
+              </div>
+            </div>
+
+            <div class="section-head" style="margin-top:22px; margin-bottom:8px">
+              <div>
+                <span class="eyebrow">Colores y fotos</span>
+                <h3 class="panel-title" style="font-size:1.5rem">Sube imagenes desde galeria</h3>
+              </div>
+              <button class="ghost-btn" id="addColorButton">Agregar color</button>
+            </div>
+            <p class="owner-help">Cada color puede tener su propia galería de fotos. No hace falta pegar links externos.</p>
+            <div class="editor-stack" id="colorsEditor"></div>
+
+            <div class="section-head" style="margin-top:22px; margin-bottom:8px">
+              <div>
+                <span class="eyebrow">Tallas</span>
+                <h3 class="panel-title" style="font-size:1.5rem">Disponibilidad por talla</h3>
+              </div>
+              <button class="ghost-btn" id="addSizeButton">Agregar talla</button>
+            </div>
+            <div class="editor-stack" id="sizesEditor"></div>
+          </article>
+
           <article class="owner-panel">
             <div class="section-head" style="margin-bottom:0">
               <div>
@@ -112,93 +209,8 @@
               </div>
               <button class="action-btn" id="addSlideButton">Agregar slide</button>
             </div>
-            <p class="owner-help" style="margin-top:12px">Puedes cambiar texto, imagen y orden visual del carrusel principal desde aqui.</p>
+            <p class="owner-help" style="margin-top:12px">Puedes cambiar texto, imagen y orden del carrusel principal. Las imagenes tambien se suben desde la galería.</p>
             <div class="slide-editor-list" id="slideEditorList"></div>
-          </article>
-
-          <article class="owner-panel">
-            <div class="section-head" style="margin-bottom:0">
-              <div>
-                <span class="eyebrow">Producto seleccionado</span>
-                <h2 class="panel-title">Editor de producto</h2>
-              </div>
-            </div>
-            <p class="owner-help" style="margin-top:12px">Primero veras el producto como lo vera el cliente. Debajo estan los campos que puedes cambiar.</p>
-            <div class="owner-preview-card" id="ownerProductPreview"></div>
-            <div class="field-grid" style="margin-top:18px">
-              <div class="field">
-                <label for="productNameInput">Nombre del producto</label>
-                <input id="productNameInput" type="text" />
-              </div>
-              <div class="field">
-                <label for="productCategoryInput">Categoria</label>
-                <select id="productCategoryInput"></select>
-              </div>
-              <div class="field">
-                <label for="productPriceInput">Precio actual RD$</label>
-                <input id="productPriceInput" type="number" min="0" />
-              </div>
-              <div class="field">
-                <label for="productOriginalPriceInput">Precio original RD$</label>
-                <input id="productOriginalPriceInput" type="number" min="0" />
-              </div>
-              <div class="field">
-                <label for="productDiscountInput">Rebaja %</label>
-                <input id="productDiscountInput" type="number" min="0" max="99" />
-                <span class="field-help">Si pones un porcentaje y hay precio original, se calcula el precio actual.</span>
-              </div>
-              <div class="field">
-                <label for="productStatusInput">Etiqueta visual</label>
-                <select id="productStatusInput">
-                  <option value="standard">Normal</option>
-                  <option value="new">Nuevo</option>
-                  <option value="sale">Rebajas</option>
-                  <option value="offer">Oferta</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="productBadgeInput">Texto del badge</label>
-                <input id="productBadgeInput" type="text" />
-              </div>
-              <div class="field">
-                <label for="productStockInput">Stock visible</label>
-                <input id="productStockInput" type="number" min="0" />
-              </div>
-              <div class="field">
-                <label for="productCreatedAtInput">Fecha de nuevo</label>
-                <input id="productCreatedAtInput" type="date" />
-                <span class="field-help">Los productos subidos se marcan como nuevos por 7 dias desde esta fecha.</span>
-              </div>
-              <div class="field">
-                <label for="productFeaturedInput">Destacar en nuevos</label>
-                <select id="productFeaturedInput">
-                  <option value="false">No</option>
-                  <option value="true">Si</option>
-                </select>
-              </div>
-              <div class="field full">
-                <label for="productDescriptionInput">Descripcion</label>
-                <textarea id="productDescriptionInput"></textarea>
-              </div>
-            </div>
-
-            <div class="section-head" style="margin-top:20px; margin-bottom:8px">
-              <div>
-                <span class="eyebrow">Colores</span>
-                <h3 class="panel-title" style="font-size:1.5rem">Editar colores e imagenes</h3>
-              </div>
-              <button class="ghost-btn" id="addColorButton">Agregar color</button>
-            </div>
-            <div class="editor-stack" id="colorsEditor"></div>
-
-            <div class="section-head" style="margin-top:20px; margin-bottom:8px">
-              <div>
-                <span class="eyebrow">Tallas</span>
-                <h3 class="panel-title" style="font-size:1.5rem">Editar tallas</h3>
-              </div>
-              <button class="ghost-btn" id="addSizeButton">Agregar talla</button>
-            </div>
-            <div class="editor-stack" id="sizesEditor"></div>
           </article>
         </section>
       </section>
